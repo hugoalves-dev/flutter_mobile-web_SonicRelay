@@ -14,6 +14,7 @@ import '../../core/platform/host_device_name.dart';
 import '../../core/platform/host_platform.dart';
 import '../../core/storage/background_playback_storage.dart';
 import '../../core/storage/coturn_override_storage.dart';
+import '../../core/storage/initial_server_setup_storage.dart';
 import '../../core/storage/onboarding_storage.dart';
 import '../../core/storage/relay_mode_storage.dart';
 import '../../core/storage/server_config_storage.dart';
@@ -76,6 +77,29 @@ final diagnosticFileShareProvider = Provider<DiagnosticFileShare>((ref) {
 final serverConfigStorageProvider = Provider<ServerConfigStorage>(
   (ref) => ServerConfigStorage(ref.watch(secureStorageProvider)),
 );
+
+final initialServerSetupStorageProvider = Provider<InitialServerSetupStorage>(
+  (ref) => InitialServerSetupStorage(ref.watch(secureStorageProvider)),
+);
+
+final initialServerSetupCompletedProvider =
+    NotifierProvider<InitialServerSetupCompletedNotifier, bool>(
+      InitialServerSetupCompletedNotifier.new,
+    );
+
+class InitialServerSetupCompletedNotifier extends Notifier<bool> {
+  InitialServerSetupCompletedNotifier([this._initial = false]);
+
+  final bool _initial;
+
+  @override
+  bool build() => _initial;
+
+  Future<void> complete() async {
+    await ref.read(initialServerSetupStorageProvider).write(true);
+    state = true;
+  }
+}
 
 /// Holds the currently configured server base URL. The initial value is
 /// injected at startup via an override in `main()` with the persisted URL

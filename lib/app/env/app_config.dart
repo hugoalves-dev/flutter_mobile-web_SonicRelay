@@ -9,6 +9,13 @@ class AppConfig {
     defaultValue: 'https://sonicrelay-api.hugodotnet.dev',
   );
 
+  /// Default TURN URI shown on the first launch before the app makes any
+  /// network request. Forks can point this at their own relay at build time.
+  static const defaultTurnUrl = String.fromEnvironment(
+    'SONIC_RELAY_TURN_URL',
+    defaultValue: 'turn:sonicrelay-turn.hugodotnet.dev:3478?transport=udp',
+  );
+
   /// The published SonicRelay privacy policy. Google Play requires the policy to
   /// be reachable from inside the app, not only from the store listing, so the
   /// settings screen links here. Overridable at build time for a staging site.
