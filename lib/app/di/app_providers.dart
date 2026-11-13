@@ -306,10 +306,10 @@ final devicePlatformProvider = Provider<String>((ref) => hostPlatformName);
 /// widget test can assert what the app tried to open without driving the
 /// url_launcher platform channel, which has no implementation under
 /// `flutter test`. Returns false when no handler exists for the URL.
-final externalLinkLauncherProvider =
-    Provider<Future<bool> Function(Uri)>((ref) {
-  return (uri) =>
-      launchUrl(uri, mode: LaunchMode.externalApplication);
+final externalLinkLauncherProvider = Provider<Future<bool> Function(Uri)>((
+  ref,
+) {
+  return (uri) => launchUrl(uri, mode: LaunchMode.externalApplication);
 });
 
 /// The device-name lookup the identity session uses at bootstrap. Behind a
@@ -555,18 +555,20 @@ final sessionsRepositoryProvider = Provider<SessionsRepository>(
 /// at any moment and this is the only signal the viewer gets.
 final discoverableSessionsProvider =
     StreamProvider.autoDispose<List<DiscoverableSession>>((ref) async* {
-  final repository = ref.watch(sessionsRepositoryProvider);
-  while (true) {
-    yield await repository.discover();
-    await Future<void>.delayed(const Duration(seconds: 5));
-  }
-});
+      final repository = ref.watch(sessionsRepositoryProvider);
+      while (true) {
+        yield await repository.discover();
+        await Future<void>.delayed(const Duration(seconds: 5));
+      }
+    });
 
 /// Polls the public radio room's availability while the join page is mounted. Fetching this
 /// also auto-pairs this device with the room server-side, so — unlike
 /// [discoverableSessionsProvider] — no prior manual pairing is ever required to see or join
 /// it (docs/superpowers/specs/2026-08-19-public-radio-room-design.md in dotnet_SonicRelay).
-final publicRoomProvider = StreamProvider.autoDispose<PublicRoomInfo>((ref) async* {
+final publicRoomProvider = StreamProvider.autoDispose<PublicRoomInfo>((
+  ref,
+) async* {
   final repository = ref.watch(sessionsRepositoryProvider);
   while (true) {
     yield await repository.getPublicRoom();
@@ -581,9 +583,8 @@ final publicRoomProvider = StreamProvider.autoDispose<PublicRoomInfo>((ref) asyn
 /// `connectivity_plus` here; everything else (including tests) keeps the plain
 /// backoff by always reporting itself online.
 final networkMonitorProvider = Provider<NetworkMonitor>(
-  (ref) => isMobileHost
-      ? ConnectivityNetworkMonitor()
-      : const NoopNetworkMonitor(),
+  (ref) =>
+      isMobileHost ? ConnectivityNetworkMonitor() : const NoopNetworkMonitor(),
 );
 
 final webSocketClientProvider = Provider<WebSocketClient>(

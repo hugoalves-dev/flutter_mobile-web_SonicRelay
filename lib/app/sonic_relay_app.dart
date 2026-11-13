@@ -48,7 +48,9 @@ class _SonicRelayAppState extends ConsumerState<SonicRelayApp>
     // connection state closes the active stream.
     if (!ref.read(initialServerSetupCompletedProvider)) return;
     unawaited(
-      ref.read(diagnosticLogProvider).write('Lifecycle', 'app lifecycle -> $state'),
+      ref
+          .read(diagnosticLogProvider)
+          .write('Lifecycle', 'app lifecycle -> $state'),
     );
     final inForeground = state == AppLifecycleState.resumed;
     ref
@@ -78,9 +80,7 @@ class _SonicRelayAppState extends ConsumerState<SonicRelayApp>
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
         themeMode: ref.watch(themeModeProvider),
-        home: _InitialServerSetupPage(
-          onComplete: () => setState(() {}),
-        ),
+        home: _InitialServerSetupPage(onComplete: () => setState(() {})),
       );
     }
     ref.watch(deviceReadinessProvider);

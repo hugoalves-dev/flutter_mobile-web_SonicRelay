@@ -8,8 +8,7 @@ class InitialServerSetupStorage {
 
   final FlutterSecureStorage _storage;
 
-  Future<bool> read() async =>
-      (await _storage.read(key: _key)) == 'true';
+  Future<bool> read() async => (await _storage.read(key: _key)) == 'true';
 
   Future<void> write(bool completed) =>
       _storage.write(key: _key, value: completed.toString());

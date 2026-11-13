@@ -56,9 +56,8 @@ Future<void> main() async {
           () => OnboardingCompletedNotifier(savedOnboardingCompleted),
         ),
         initialServerSetupCompletedProvider.overrideWith(
-          () => InitialServerSetupCompletedNotifier(
-            initialServerSetupCompleted,
-          ),
+          () =>
+              InitialServerSetupCompletedNotifier(initialServerSetupCompleted),
         ),
         diagnosticsDirectoryProvider.overrideWithValue(diagnosticsDirectory),
       ],
