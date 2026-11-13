@@ -63,6 +63,9 @@ class _FakeRelaySettingsApi extends RelaySettingsApi {
 
 ProviderScope testApp() => ProviderScope(
   overrides: [
+    initialServerSetupCompletedProvider.overrideWith(
+      () => InitialServerSetupCompletedNotifier(true),
+    ),
     deviceReadinessProvider.overrideWith(_ReadyReadinessNotifier.new),
     onboardingCompletedProvider.overrideWith(
       () => OnboardingCompletedNotifier(true),
@@ -211,6 +214,9 @@ void main() {
     addTearDown(() => setSonicLogSink(null));
     final container = ProviderContainer(
       overrides: [
+        initialServerSetupCompletedProvider.overrideWith(
+          () => InitialServerSetupCompletedNotifier(true),
+        ),
         deviceReadinessProvider.overrideWith(_ReadyReadinessNotifier.new),
         onboardingCompletedProvider.overrideWith(
           () => OnboardingCompletedNotifier(true),
