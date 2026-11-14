@@ -1,7 +1,7 @@
 <en-US>
-- Fixed Web connection and quality indicators, and prevented other listeners leaving a public room from stopping your audio. 📻
+- Review and edit the API and TURN server addresses before the app connects for the first time.
 </en-US>
 
 <pt-BR>
-- Corrigimos os indicadores de conexão e qualidade no Web e evitamos que a saída de outros ouvintes de uma sala pública interrompa seu áudio. 📻
+- Revise e altere os endereços da API e do servidor TURN antes da primeira conexão do app.
 </pt-BR>

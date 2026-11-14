@@ -9,6 +9,7 @@ import 'app/env/app_config.dart';
 import 'app/sonic_relay_app.dart';
 import 'core/storage/background_playback_storage.dart';
 import 'core/storage/coturn_override_storage.dart';
+import 'core/storage/initial_server_setup_storage.dart';
 import 'core/storage/onboarding_storage.dart';
 import 'core/storage/relay_mode_storage.dart';
 import 'core/storage/server_config_storage.dart';
@@ -32,6 +33,9 @@ Future<void> main() async {
   final savedOnboardingCompleted = await const OnboardingStorage(
     secureStorage,
   ).read();
+  final initialServerSetupCompleted = await const InitialServerSetupStorage(
+    secureStorage,
+  ).read();
   final diagnosticsDirectory = kIsWeb
       ? 'web'
       : (await getApplicationSupportDirectory()).path;
@@ -50,6 +54,10 @@ Future<void> main() async {
         themeModeProvider.overrideWith(() => ThemeModeNotifier(savedThemeMode)),
         onboardingCompletedProvider.overrideWith(
           () => OnboardingCompletedNotifier(savedOnboardingCompleted),
+        ),
+        initialServerSetupCompletedProvider.overrideWith(
+          () =>
+              InitialServerSetupCompletedNotifier(initialServerSetupCompleted),
         ),
         diagnosticsDirectoryProvider.overrideWithValue(diagnosticsDirectory),
       ],

@@ -14,6 +14,7 @@ import '../../core/platform/host_device_name.dart';
 import '../../core/platform/host_platform.dart';
 import '../../core/storage/background_playback_storage.dart';
 import '../../core/storage/coturn_override_storage.dart';
+import '../../core/storage/initial_server_setup_storage.dart';
 import '../../core/storage/onboarding_storage.dart';
 import '../../core/storage/relay_mode_storage.dart';
 import '../../core/storage/server_config_storage.dart';
@@ -76,6 +77,29 @@ final diagnosticFileShareProvider = Provider<DiagnosticFileShare>((ref) {
 final serverConfigStorageProvider = Provider<ServerConfigStorage>(
   (ref) => ServerConfigStorage(ref.watch(secureStorageProvider)),
 );
+
+final initialServerSetupStorageProvider = Provider<InitialServerSetupStorage>(
+  (ref) => InitialServerSetupStorage(ref.watch(secureStorageProvider)),
+);
+
+final initialServerSetupCompletedProvider =
+    NotifierProvider<InitialServerSetupCompletedNotifier, bool>(
+      InitialServerSetupCompletedNotifier.new,
+    );
+
+class InitialServerSetupCompletedNotifier extends Notifier<bool> {
+  InitialServerSetupCompletedNotifier([this._initial = false]);
+
+  final bool _initial;
+
+  @override
+  bool build() => _initial;
+
+  Future<void> complete() async {
+    await ref.read(initialServerSetupStorageProvider).write(true);
+    state = true;
+  }
+}
 
 /// Holds the currently configured server base URL. The initial value is
 /// injected at startup via an override in `main()` with the persisted URL
@@ -282,10 +306,10 @@ final devicePlatformProvider = Provider<String>((ref) => hostPlatformName);
 /// widget test can assert what the app tried to open without driving the
 /// url_launcher platform channel, which has no implementation under
 /// `flutter test`. Returns false when no handler exists for the URL.
-final externalLinkLauncherProvider =
-    Provider<Future<bool> Function(Uri)>((ref) {
-  return (uri) =>
-      launchUrl(uri, mode: LaunchMode.externalApplication);
+final externalLinkLauncherProvider = Provider<Future<bool> Function(Uri)>((
+  ref,
+) {
+  return (uri) => launchUrl(uri, mode: LaunchMode.externalApplication);
 });
 
 /// The device-name lookup the identity session uses at bootstrap. Behind a
@@ -531,18 +555,20 @@ final sessionsRepositoryProvider = Provider<SessionsRepository>(
 /// at any moment and this is the only signal the viewer gets.
 final discoverableSessionsProvider =
     StreamProvider.autoDispose<List<DiscoverableSession>>((ref) async* {
-  final repository = ref.watch(sessionsRepositoryProvider);
-  while (true) {
-    yield await repository.discover();
-    await Future<void>.delayed(const Duration(seconds: 5));
-  }
-});
+      final repository = ref.watch(sessionsRepositoryProvider);
+      while (true) {
+        yield await repository.discover();
+        await Future<void>.delayed(const Duration(seconds: 5));
+      }
+    });
 
 /// Polls the public radio room's availability while the join page is mounted. Fetching this
 /// also auto-pairs this device with the room server-side, so — unlike
 /// [discoverableSessionsProvider] — no prior manual pairing is ever required to see or join
 /// it (docs/superpowers/specs/2026-08-19-public-radio-room-design.md in dotnet_SonicRelay).
-final publicRoomProvider = StreamProvider.autoDispose<PublicRoomInfo>((ref) async* {
+final publicRoomProvider = StreamProvider.autoDispose<PublicRoomInfo>((
+  ref,
+) async* {
   final repository = ref.watch(sessionsRepositoryProvider);
   while (true) {
     yield await repository.getPublicRoom();
@@ -557,9 +583,8 @@ final publicRoomProvider = StreamProvider.autoDispose<PublicRoomInfo>((ref) asyn
 /// `connectivity_plus` here; everything else (including tests) keeps the plain
 /// backoff by always reporting itself online.
 final networkMonitorProvider = Provider<NetworkMonitor>(
-  (ref) => isMobileHost
-      ? ConnectivityNetworkMonitor()
-      : const NoopNetworkMonitor(),
+  (ref) =>
+      isMobileHost ? ConnectivityNetworkMonitor() : const NoopNetworkMonitor(),
 );
 
 final webSocketClientProvider = Provider<WebSocketClient>(

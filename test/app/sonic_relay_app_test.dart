@@ -63,13 +63,14 @@ class _FakeRelaySettingsApi extends RelaySettingsApi {
 
 ProviderScope testApp() => ProviderScope(
   overrides: [
+    initialServerSetupCompletedProvider.overrideWith(
+      () => InitialServerSetupCompletedNotifier(true),
+    ),
     deviceReadinessProvider.overrideWith(_ReadyReadinessNotifier.new),
     onboardingCompletedProvider.overrideWith(
       () => OnboardingCompletedNotifier(true),
     ),
-    diagnosticsDirectoryProvider.overrideWithValue(
-      _testDiagnosticsDirectory(),
-    ),
+    diagnosticsDirectoryProvider.overrideWithValue(_testDiagnosticsDirectory()),
     relayModeStorageProvider.overrideWithValue(_FakeRelayModeStorage()),
     themeModeStorageProvider.overrideWithValue(_FakeThemeModeStorage()),
     // Avoids a real Dio call (and its dangling timer) when the join page mounts and watches
@@ -86,39 +87,44 @@ ProviderScope testApp() => ProviderScope(
 );
 
 void main() {
-  testWidgets('wires a light and a dark Material 3 theme, defaulting to system', (
-    tester,
-  ) async {
-    await tester.pumpWidget(testApp());
-    await tester.pumpAndSettle();
+  testWidgets(
+    'wires a light and a dark Material 3 theme, defaulting to system',
+    (tester) async {
+      await tester.pumpWidget(testApp());
+      await tester.pumpAndSettle();
 
-    final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(materialApp.theme?.useMaterial3, isTrue);
-    expect(materialApp.theme?.brightness, Brightness.light);
-    expect(materialApp.darkTheme?.useMaterial3, isTrue);
-    expect(materialApp.darkTheme?.brightness, Brightness.dark);
-    expect(materialApp.themeMode, ThemeMode.system);
-  });
+      final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
+      expect(materialApp.theme?.useMaterial3, isTrue);
+      expect(materialApp.theme?.brightness, Brightness.light);
+      expect(materialApp.darkTheme?.useMaterial3, isTrue);
+      expect(materialApp.darkTheme?.brightness, Brightness.dark);
+      expect(materialApp.themeMode, ThemeMode.system);
+    },
+  );
 
-  testWidgets('selecting Light in Settings switches the active theme immediately', (
-    tester,
-  ) async {
-    await tester.pumpWidget(testApp());
-    await tester.pumpAndSettle();
+  testWidgets(
+    'selecting Light in Settings switches the active theme immediately',
+    (tester) async {
+      await tester.pumpWidget(testApp());
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Settings'));
-    await tester.pumpAndSettle();
-    expect(find.text('Appearance'), findsOneWidget);
+      await tester.tap(find.byTooltip('Settings'));
+      await tester.pumpAndSettle();
+      expect(find.text('Appearance'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('Light'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Light'));
-    await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Light'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Light'));
+      await tester.pumpAndSettle();
 
-    final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(materialApp.themeMode, ThemeMode.light);
-    expect(Theme.of(tester.element(find.text('Appearance'))).brightness, Brightness.light);
-  });
+      final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
+      expect(materialApp.themeMode, ThemeMode.light);
+      expect(
+        Theme.of(tester.element(find.text('Appearance'))).brightness,
+        Brightness.light,
+      );
+    },
+  );
 
   testWidgets('startup opens device-first join without any account UI', (
     tester,
@@ -211,6 +217,9 @@ void main() {
     addTearDown(() => setSonicLogSink(null));
     final container = ProviderContainer(
       overrides: [
+        initialServerSetupCompletedProvider.overrideWith(
+          () => InitialServerSetupCompletedNotifier(true),
+        ),
         deviceReadinessProvider.overrideWith(_ReadyReadinessNotifier.new),
         onboardingCompletedProvider.overrideWith(
           () => OnboardingCompletedNotifier(true),
