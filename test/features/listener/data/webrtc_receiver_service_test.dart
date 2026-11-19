@@ -510,6 +510,38 @@ void main() {
     expect(factory.iceConfigs.single.iceServers.single.credential, 'secret');
   });
 
+  test(
+    'a LAN-signaled negotiation uses no ICE servers and never resolves TURN',
+    () async {
+      var resolverCalls = 0;
+      final lanService = WebRtcReceiverService(
+        peerConnectionFactory: factory,
+        audioReceiver: audio,
+        iceServersResolver: () async {
+          resolverCalls++;
+          return RtcIceServerConfig.defaults();
+        },
+        forceRelay: () => true,
+        lanSignaled: () => true,
+      );
+      addTearDown(lanService.dispose);
+
+      await lanService.handleSignal(
+        _message(
+          SignalingMessageType.webrtcOffer,
+          from: 'publisher-1',
+          payload: {'sdp': 'offer-sdp', 'type': 'offer'},
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(resolverCalls, 0);
+      final config = factory.iceConfigs.single;
+      expect(config.iceServers, isEmpty);
+      expect(config.toConfiguration()['iceTransportPolicy'], 'all');
+    },
+  );
+
   test('forceRelay makes the negotiation use relay-only ICE', () async {
     final relayService = WebRtcReceiverService(
       peerConnectionFactory: factory,

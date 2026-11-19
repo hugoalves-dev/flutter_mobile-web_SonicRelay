@@ -30,6 +30,10 @@ class RtcIceServerConfig {
     RtcIceServer(urls: ['stun:stun1.google.com:19302']),
   ]);
 
+  /// No STUN/TURN at all: host candidates only. Used for LAN-signaled sessions
+  /// (dotnet_SonicRelay#75), which must not acquire an internet dependency.
+  factory RtcIceServerConfig.empty() => const RtcIceServerConfig([]);
+
   final List<RtcIceServer> iceServers;
 
   /// When true, ICE only uses relay (TURN) candidates — `iceTransportPolicy:
