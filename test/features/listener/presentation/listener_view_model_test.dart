@@ -261,6 +261,42 @@ void main() {
     );
   });
 
+  test('leaving a session the publisher ended keeps auto-connect on', () async {
+    FlutterSecureStorage.setMockInitialValues({
+      'autoConnect.enabled': 'true',
+      'autoConnect.publisherDeviceId': 'pub-1',
+    });
+    final signalingClient = SignalingClient(
+      webSocketClient: WebSocketClient(
+        diagnosticLog: _testLog(),
+        connector: (uri, headers) async => FakeWebSocketConnection(),
+        scheduleTimer: (delay, callback) => Timer(Duration.zero, callback),
+      ),
+      deviceIdentitySession: FakeDeviceIdentitySession(),
+      diagnosticLog: _testLog(),
+    );
+    final container = ProviderContainer(
+      overrides: [
+        audioReceiverServiceProvider.overrideWithValue(
+          FakeAudioReceiverService(),
+        ),
+        signalingClientProvider.overrideWithValue(signalingClient),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(autoConnectSettingsProvider.future);
+    container.read(listenerViewModelProvider);
+
+    await container
+        .read(listenerViewModelProvider.notifier)
+        .leave(pauseAutoConnect: false);
+
+    expect(
+      container.read(autoConnectControllerProvider).phase,
+      isNot(AutoConnectPhase.paused),
+    );
+  });
+
   test(
     'leave invalidates pending signaling before slow receiver teardown',
     () async {

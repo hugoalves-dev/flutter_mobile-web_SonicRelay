@@ -48,6 +48,7 @@ class AutoConnectController extends Notifier<AutoConnectStatus> {
   String? _stopMessage;
   String? _message;
   bool _inFlight = false;
+  bool _attached = false;
 
   @override
   AutoConnectStatus build() {
@@ -59,29 +60,43 @@ class AutoConnectController extends Notifier<AutoConnectStatus> {
   AutoConnectSettings get _settings =>
       ref.read(autoConnectSettingsProvider).value ?? AutoConnectSettings.off;
 
+  /// The join page is showing. Auto-connect only ever acts while it is: that page is
+  /// unmounted while a session plays, which is what keeps a playing session from being
+  /// replaced (a settings change made from the listener page must not join anything).
+  void attach() => _attached = true;
+
+  /// The join page went away: stop acting, drop scheduled retries and forget the last
+  /// discovery result so a stale list is never acted on later.
+  void detach() {
+    _attached = false;
+    _lastSessions = const [];
+    cancelPending();
+  }
+
   /// Called with every discovery result while the join page is mounted.
   Future<void> onDiscovery(List<DiscoverableSession> sessions) {
     _lastSessions = sessions;
     return _evaluate();
   }
 
-  /// The user explicitly left [sessionId]: stop auto-connecting until the next app start
-  /// or [resume], and never auto-rejoin that same session.
+  /// The user explicitly left a session: stop auto-connecting until the next app start or
+  /// an explicit [resume], so the session just left is not immediately rejoined.
   void pauseAfterLeave(String? sessionId) {
-    if (sessionId != null) _blocked.add(sessionId);
     _paused = true;
     cancelPending();
     state = _idleStatus();
   }
 
+  /// The user's explicit go-ahead; it may rejoin the session that was left (the desktop
+  /// keeps one session id alive for hours by rotating its code).
   void resume() {
     _paused = false;
     _message = null;
     unawaited(_evaluate());
   }
 
-  /// Drops scheduled retries (join page disposed). Attempt counts are kept, so a session
-  /// that already used its retries does not get a fresh budget.
+  /// Drops scheduled retries. Attempt counts are kept, so a session that already used its
+  /// quick retries goes straight back to the long cooldown.
   void cancelPending() {
     for (final timer in _cooling.values) {
       timer.cancel();
@@ -90,7 +105,7 @@ class AutoConnectController extends Notifier<AutoConnectStatus> {
   }
 
   Future<void> _evaluate() async {
-    if (_inFlight) return;
+    if (_inFlight || !_attached) return;
     final settings = _settings;
     final target = AutoConnectPolicy.pick(
       settings: settings,
@@ -131,8 +146,10 @@ class AutoConnectController extends Notifier<AutoConnectStatus> {
     final attempt = (_attempts[target.sessionId] ?? 0) + 1;
     _attempts[target.sessionId] = attempt;
     switch (AutoConnectPolicy.onFailure(failure, attempt, deviceName)) {
-      case RetryAfter(:final delay):
-        _message = 'Could not reach $deviceName. Retrying…';
+      case RetryAfter(:final delay, :final message):
+        _message = message;
+        // The page may have gone away while the join was in flight.
+        if (!_attached) break;
         _cooling[target.sessionId] = ref.read(autoConnectTimerFactoryProvider)(
           delay,
           () {

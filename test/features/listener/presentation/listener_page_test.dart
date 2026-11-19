@@ -17,7 +17,7 @@ class _StubListenerViewModel extends ListenerViewModel {
   ListenerState build() => _initial;
 
   @override
-  Future<void> leave() async {}
+  Future<void> leave({bool pauseAutoConnect = true}) async {}
 }
 
 Future<void> _pumpWith(WidgetTester tester, ListenerState state) {

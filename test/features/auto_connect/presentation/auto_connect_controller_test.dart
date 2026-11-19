@@ -91,7 +91,7 @@ void main() {
   late _FakeTimers timers;
   late ProviderContainer container;
 
-  Future<void> start({bool enabled = true}) async {
+  Future<void> start({bool enabled = true, bool attached = true}) async {
     FlutterSecureStorage.setMockInitialValues({
       'autoConnect.enabled': enabled ? 'true' : 'false',
       'autoConnect.publisherDeviceId': 'pub-1',
@@ -107,6 +107,9 @@ void main() {
     );
     addTearDown(container.dispose);
     await container.read(autoConnectSettingsProvider.future);
+    if (attached) {
+      container.read(autoConnectControllerProvider.notifier).attach();
+    }
   }
 
   AutoConnectController controller() =>
@@ -178,7 +181,9 @@ void main() {
     expect(repository.joinedIds, ['s1', 's1']);
   });
 
-  test('gives up on a session after three network retries', () async {
+  test('after three network retries it cools down for five minutes', () async {
+    // The desktop keeps one session id alive for hours, so a temporary outage
+    // must not block that publisher until the app restarts.
     await start();
     repository.results.addAll([_network, _network, _network, _network]);
 
@@ -190,9 +195,51 @@ void main() {
     await discover([_session('s1')]);
 
     expect(repository.joinedIds, hasLength(4));
-    expect(timers.timers, hasLength(3));
+    expect(timers.timers.last.duration, const Duration(minutes: 5));
     expect(status().message, isNotNull);
+
+    timers.timers.last.fire();
+    await Future<void>.delayed(Duration.zero);
+    expect(repository.joinedIds, hasLength(5));
   });
+
+  test('a full session is retried after a cooldown, not blocked', () async {
+    await start();
+    repository.results.add(
+      const SessionsFailure(SessionsFailureKind.maxViewers, 'full'),
+    );
+
+    await discover([_session('s1')]);
+    timers.timers.single.fire();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(repository.joinedIds, ['s1', 's1']);
+  });
+
+  test('never joins while the join page is not showing', () async {
+    await start(attached: false);
+
+    await discover([_session('s1')]);
+
+    expect(repository.joinedIds, isEmpty);
+  });
+
+  test(
+    'a failure that lands after leaving the join page schedules no retry',
+    () async {
+      await start();
+      repository.gate = Completer<void>();
+      repository.results.add(_network);
+
+      final attempt = discover([_session('s1')]);
+      await Future<void>.delayed(Duration.zero);
+      controller().detach();
+      repository.gate!.complete();
+      await attempt;
+
+      expect(timers.timers, isEmpty);
+    },
+  );
 
   test('leave pauses auto-connect and blocks the left session', () async {
     await start();
@@ -204,16 +251,18 @@ void main() {
     expect(status().phase, AutoConnectPhase.paused);
   });
 
-  test('resume joins a new session but never the one that was left', () async {
+  test('resume may rejoin the session that was left', () async {
+    // Resume is the user's explicit go-ahead; the desktop keeps the same
+    // session id alive, so blocking it would make Resume do nothing.
     await start();
     controller().pauseAfterLeave('s1');
-
-    controller().resume();
     await discover([_session('s1')]);
     expect(repository.joinedIds, isEmpty);
 
-    await discover([_session('s1'), _session('s2')]);
-    expect(repository.joinedIds, ['s2']);
+    controller().resume();
+    await discover([_session('s1')]);
+
+    expect(repository.joinedIds, ['s1']);
   });
 
   test('an identity failure stops all further attempts', () async {
@@ -241,12 +290,12 @@ void main() {
     },
   );
 
-  test('cancelPending cancels a scheduled retry', () async {
+  test('leaving the join page cancels a scheduled retry', () async {
     await start();
     repository.results.add(_network);
     await discover([_session('s1')]);
 
-    controller().cancelPending();
+    controller().detach();
     timers.timers.single.fire();
     await Future<void>.delayed(Duration.zero);
 

@@ -141,15 +141,18 @@ class ListenerViewModel extends Notifier<ListenerState> {
   /// or offer can race with peer-connection/audio teardown. Both cleanups run
   /// concurrently and must finish before an error is reported.
   ///
-  /// Every caller is an explicit user stop (Leave, the notification's Stop, backing out
-  /// while waiting), so auto-connect is paused here: back on the join page it must not
-  /// immediately rejoin the session the user just left (issue #65).
-  Future<void> leave() async {
-    ref
-        .read(autoConnectControllerProvider.notifier)
-        .pauseAfterLeave(
-          ref.read(joinSessionViewModelProvider).session?.sessionId,
-        );
+  /// An explicit user stop (Leave, the notification's Stop, backing out while waiting)
+  /// pauses auto-connect so the session just left is not immediately rejoined (issue #65).
+  /// Leaving a session the publisher already ended passes [pauseAutoConnect] false: the
+  /// publisher's next session should still be joined automatically.
+  Future<void> leave({bool pauseAutoConnect = true}) async {
+    if (pauseAutoConnect) {
+      ref
+          .read(autoConnectControllerProvider.notifier)
+          .pauseAfterLeave(
+            ref.read(joinSessionViewModelProvider).session?.sessionId,
+          );
+    }
     final signalingLeave = _signaling.leave();
     final receiverLeave = _receiver.leave();
 

@@ -26,7 +26,7 @@ class _AutoConnectBannerState extends ConsumerState<AutoConnectBanner>
   @override
   void initState() {
     super.initState();
-    _controller = ref.read(autoConnectControllerProvider.notifier);
+    _controller = ref.read(autoConnectControllerProvider.notifier)..attach();
     WidgetsBinding.instance.addObserver(this);
     ref.listenManual(discoverableSessionsProvider, (_, next) {
       if (next case AsyncData(:final value)) {
@@ -42,7 +42,7 @@ class _AutoConnectBannerState extends ConsumerState<AutoConnectBanner>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_network?.cancel());
-    _controller.cancelPending();
+    _controller.detach();
     super.dispose();
   }
 

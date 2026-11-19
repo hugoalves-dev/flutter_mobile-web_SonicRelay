@@ -9,10 +9,11 @@ sealed class FailureAction {
   const FailureAction();
 }
 
-/// Retry the same session after [delay].
+/// Retry the same session after [delay], showing [message] meanwhile.
 class RetryAfter extends FailureAction {
-  const RetryAfter(this.delay);
+  const RetryAfter(this.delay, [this.message]);
   final Duration delay;
+  final String? message;
 }
 
 /// Never auto-attempt this session again in this process. A new session from the same
@@ -35,6 +36,9 @@ abstract final class AutoConnectPolicy {
     Duration(seconds: 15),
     Duration(seconds: 45),
   ];
+
+  /// How long to wait after the quick retries are used up, or when the session is full.
+  static const cooldown = Duration(minutes: 5);
 
   /// The session to join now, or null when nothing should be attempted.
   static DiscoverableSession? pick({
@@ -72,11 +76,20 @@ abstract final class AutoConnectPolicy {
     int attempt,
     String deviceName,
   ) => switch (kind) {
+    // The desktop keeps one session id alive for hours (it rotates the code), so
+    // transient failures cool down instead of blocking that publisher for good.
     SessionsFailureKind.network || SessionsFailureKind.manualRetry =>
       attempt <= retryDelays.length
-          ? RetryAfter(retryDelays[attempt - 1])
-          : BlockSession('Could not reach $deviceName. Join it manually.'),
-    SessionsFailureKind.maxViewers => BlockSession(
+          ? RetryAfter(
+              retryDelays[attempt - 1],
+              'Could not reach $deviceName. Retrying…',
+            )
+          : RetryAfter(
+              cooldown,
+              'Could not reach $deviceName. Trying again in a few minutes.',
+            ),
+    SessionsFailureKind.maxViewers => RetryAfter(
+      cooldown,
       '$deviceName has no free listener slot.',
     ),
     SessionsFailureKind.notPaired => BlockSession(

@@ -160,14 +160,26 @@ void main() {
         const Duration(seconds: 45),
       );
       expect(
-        AutoConnectPolicy.onFailure(SessionsFailureKind.network, 4, 'Home PC'),
-        isA<BlockSession>(),
+        (AutoConnectPolicy.onFailure(SessionsFailureKind.network, 4, 'Home PC')
+                as RetryAfter)
+            .delay,
+        const Duration(minutes: 5),
       );
+    });
+
+    test('a full session is retried after five minutes', () {
+      final action = AutoConnectPolicy.onFailure(
+        SessionsFailureKind.maxViewers,
+        1,
+        'Home PC',
+      );
+
+      expect((action as RetryAfter).delay, const Duration(minutes: 5));
+      expect(action.message, 'Home PC has no free listener slot.');
     });
 
     test('session-level refusals block only that session', () {
       for (final kind in [
-        SessionsFailureKind.maxViewers,
         SessionsFailureKind.invalidCode,
         SessionsFailureKind.expiredCode,
         SessionsFailureKind.invalidResponse,
