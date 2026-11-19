@@ -14,12 +14,29 @@ import '../../features/sessions/presentation/session_waiting_page.dart';
 import '../../features/settings/presentation/settings_page.dart';
 import '../../features/splash/presentation/splash_page.dart';
 import '../di/app_providers.dart';
+import '../di/lan_providers.dart';
 
 String? deviceIdentityRedirect(
   DeviceReadinessState readiness,
   String location, {
   required bool onboardingCompleted,
+  bool lanOnly = false,
 }) {
+  // lanOnly (dotnet_SonicRelay#75) never touches RelayControl, so the cloud
+  // identity is not a precondition: the app behaves as ready and LAN pairing
+  // and listening stay reachable even with no server at all.
+  if (lanOnly) {
+    if (location == '/settings' || location == '/how-to-use') return null;
+    if (!onboardingCompleted) {
+      return location == '/onboarding' ? null : '/onboarding';
+    }
+    if (location == '/loading' ||
+        location == '/device-setup' ||
+        location == '/onboarding') {
+      return '/join';
+    }
+    return null;
+  }
   switch (readiness.status) {
     case DeviceReadinessStatus.restoring:
       return location == '/loading' ? null : '/loading';
@@ -69,6 +86,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ref.read(deviceReadinessProvider),
       state.matchedLocation,
       onboardingCompleted: ref.read(onboardingCompletedProvider),
+      lanOnly: ref.read(lanOnlyActiveProvider),
     ),
     routes: [
       GoRoute(
@@ -117,6 +135,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       : null;
   Timer? splashHoldTimer;
 
+  ref.listen(lanOnlyActiveProvider, (_, _) => router.refresh());
   ref.listen(deviceReadinessProvider, (_, next) {
     if (next.status == DeviceReadinessStatus.restoring) {
       restoringSince ??= DateTime.now();

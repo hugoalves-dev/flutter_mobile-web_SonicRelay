@@ -40,6 +40,15 @@ class ConnectivityModeNotifier extends Notifier<String> {
 
 final lanPlatformProvider = Provider<LanPlatform>((_) => createLanPlatform());
 
+/// True when the app must not reach RelayControl at all: `lanOnly` on a
+/// platform that supports LAN (on the web LAN is unsupported, so the cloud
+/// flow stays the only one).
+final lanOnlyActiveProvider = Provider<bool>(
+  (ref) =>
+      ref.watch(lanPlatformProvider).isSupported &&
+      ref.watch(connectivityModeProvider) == ConnectivityModes.lanOnly,
+);
+
 /// Whether LAN features should be offered at all: supported platform (not the
 /// web) and a mode that allows LAN.
 final lanEnabledProvider = Provider<bool>(

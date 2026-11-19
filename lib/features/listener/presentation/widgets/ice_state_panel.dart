@@ -13,6 +13,7 @@ class IceStatePanel extends StatelessWidget {
     required this.signalingStatus,
     required this.iceLabel,
     required this.iceStatus,
+    this.pathLabel,
     super.key,
   });
 
@@ -20,6 +21,9 @@ class IceStatePanel extends StatelessWidget {
   final ConnectionStatus signalingStatus;
   final String iceLabel;
   final ConnectionStatus iceStatus;
+
+  /// The path the audio took (`LAN · P2P direct`, ...); hidden until known.
+  final String? pathLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +46,15 @@ class IceStatePanel extends StatelessWidget {
             value: iceLabel,
             status: iceStatus,
           ),
+          if (pathLabel case final path?) ...[
+            const SizedBox(height: AppSpacing.sm),
+            _StatusRow(
+              icon: Icons.alt_route_rounded,
+              label: 'Path',
+              value: path,
+              status: ConnectionStatus.connected,
+            ),
+          ],
         ],
       ),
     );

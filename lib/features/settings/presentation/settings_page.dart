@@ -9,6 +9,7 @@ import '../../../app/theme/app_spacing.dart';
 import '../../../core/diagnostics/diagnostic_log.dart';
 import '../../../core/widgets/sonic_button.dart';
 import '../../../core/widgets/sonic_card.dart';
+import '../../lan/presentation/lan_settings_section.dart';
 import '../../support/presentation/widgets/support_project_card.dart';
 import 'widgets/coturn_url_field.dart';
 import 'widgets/keep_playing_toggle.dart';
@@ -70,6 +71,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         const ServerUrlField(),
                         const Divider(height: AppSpacing.xl),
                         const _ConnectionSection(),
+                        const LanSettingsSection(),
                         const Divider(height: AppSpacing.xl),
                         const _SettingsRow(
                           icon: Icons.headset_outlined,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,6 +49,7 @@ import '../../features/signaling/data/signaling_client.dart';
 import '../../features/signaling/data/signaling_grant_preparer.dart';
 import '../../features/signaling/data/platform_signaling_grant_preparer.dart';
 import '../env/app_config.dart';
+import 'lan_providers.dart';
 
 final secureStorageProvider = Provider<FlutterSecureStorage>(
   (ref) => const FlutterSecureStorage(),
@@ -416,11 +419,17 @@ class DeviceReadinessNotifier extends Notifier<DeviceReadinessState> {
     ref.listen(deviceIdentityInvalidationProvider, (_, _) {
       requireDeviceSetup('This device identity must be reset.');
     });
+    // lanOnly never bootstraps the cloud identity; leaving it starts the
+    // bootstrap that was skipped (dotnet_SonicRelay#75).
+    ref.listen(lanOnlyActiveProvider, (previous, next) {
+      if (previous == true && !next) unawaited(initialize());
+    });
     Future<void>.microtask(initialize);
     return const DeviceReadinessState.restoring();
   }
 
   Future<void> initialize() {
+    if (ref.read(lanOnlyActiveProvider)) return Future<void>.value();
     final existing = _initialization;
     if (existing != null) return existing;
 
