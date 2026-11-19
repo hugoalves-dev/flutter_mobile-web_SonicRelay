@@ -8,6 +8,7 @@ import '../../../core/widgets/app_branding_header.dart';
 import '../../../core/widgets/connection_badge.dart';
 import '../../../core/widgets/sonic_button.dart';
 import '../../../core/widgets/sonic_card.dart';
+import '../../auto_connect/presentation/auto_connect_banner.dart';
 import '../../support/presentation/widgets/support_project_card.dart';
 import 'join_session_view_model.dart';
 import 'widgets/discovered_sessions_list.dart';
@@ -69,6 +70,7 @@ class JoinSessionPage extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
+                  const AutoConnectBanner(),
                   Text(
                     'Enter session code',
                     style: Theme.of(context).textTheme.headlineMedium,

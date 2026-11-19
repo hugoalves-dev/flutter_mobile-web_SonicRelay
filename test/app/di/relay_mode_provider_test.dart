@@ -34,7 +34,9 @@ void main() {
 
       expect(container.read(relayModeProvider), RelayModes.automatic);
 
-      await container.read(relayModeProvider.notifier).set(RelayModes.forceRelay);
+      await container
+          .read(relayModeProvider.notifier)
+          .set(RelayModes.forceRelay);
 
       expect(container.read(relayModeProvider), RelayModes.forceRelay);
       expect(storage.written, RelayModes.forceRelay);
