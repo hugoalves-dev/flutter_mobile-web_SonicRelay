@@ -11,6 +11,9 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
     <!-- Requested only when the user opens the device-pairing QR scanner. -->
     <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- mDNS/DNS-SD discovery of SonicRelay desktops on the local network
+         (dotnet_SonicRelay#75); declared by the bonsoir plugin as well. -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
     <!-- The QR scanner drives the camera through camera_android_camerax, whose
          own manifest declares RECORD_AUDIO and WRITE_EXTERNAL_STORAGE. The
          viewer never records audio and never touches shared storage, so they

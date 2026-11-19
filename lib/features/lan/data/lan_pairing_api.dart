@@ -1,13 +1,11 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 
 import '../../../core/diagnostics/sonic_log.dart';
 import '../domain/lan_failure.dart';
 import '../domain/lan_pairing_offer.dart';
 import '../domain/manual_pairing_code.dart';
 import '../domain/trusted_publisher.dart';
-import 'pinned_http_client.dart';
+import 'lan_platform_contract.dart';
 
 /// Which certificate a request may trust: the full [pin] (QR) or only a
 /// [pinPrefix] (typed code during the 120 s pairing window).
@@ -37,7 +35,7 @@ typedef LanPost =
 
 /// Offline pairing with a SonicRelay Desktop over pinned TLS (dotnet_SonicRelay#75).
 class LanPairingApi {
-  LanPairingApi({LanPost? post}) : _post = post ?? _defaultPost;
+  LanPairingApi({required LanPost post}) : _post = post;
 
   final LanPost _post;
 
@@ -59,7 +57,8 @@ class LanPairingApi {
       body = {'pid': offer.pairingId, 'sec': offer.secret};
     } else {
       final decoded = ManualPairingCode.tryDecode(manualCode);
-      if (decoded == null) throw const LanFailure(LanFailureCode.pairingInvalid);
+      if (decoded == null)
+        throw const LanFailure(LanFailureCode.pairingInvalid);
       typedPrefix = decoded.pinPrefix;
       policy = PinPolicy(pinPrefix: typedPrefix);
       body = {'code': ManualPairingCode.normalize(manualCode)};
@@ -74,10 +73,14 @@ class LanPairingApi {
       final LanHttpResponse response;
       try {
         response = await _post(endpoint, body, policy);
-      } on HandshakeException catch (error) {
-        throw LanFailure(LanFailureCode.pinMismatch, error.message);
-      } on SocketException catch (error) {
-        sonicLog('LAN', 'pairing endpoint unreachable: $endpoint (${error.message})');
+      } on LanTransportException catch (error) {
+        if (error.failure == LanTransportFailure.tlsRejected) {
+          throw LanFailure(LanFailureCode.pinMismatch, error.detail);
+        }
+        sonicLog(
+          'LAN',
+          'pairing endpoint unreachable: $endpoint (${error.detail})',
+        );
         continue;
       } on TimeoutException {
         sonicLog('LAN', 'pairing endpoint timed out: $endpoint');
@@ -111,7 +114,10 @@ class LanPairingApi {
     final credential = body['credential'];
     final deviceId = body['publisherDeviceId'];
     if (pin is! String || credential is! String || deviceId is! String) {
-      throw const LanFailure(LanFailureCode.pairingInvalid, 'malformed response');
+      throw const LanFailure(
+        LanFailureCode.pairingInvalid,
+        'malformed response',
+      );
     }
     // The pin we store must be the certificate we actually saw, and match
     // what the QR or the typed code promised.
@@ -121,13 +127,17 @@ class LanPairingApi {
     if (offer != null && offer.pin != pin) {
       throw const LanFailure(LanFailureCode.pinMismatch);
     }
-    if (typedPrefix != null && !_startsWith(decodeBase64UrlSafe(pin), typedPrefix)) {
+    if (typedPrefix != null &&
+        !_startsWith(decodeBase64UrlSafe(pin), typedPrefix)) {
       throw const LanFailure(LanFailureCode.pinMismatch);
     }
 
     return TrustedPublisher(
       publisherDeviceId: deviceId,
-      name: (body['publisherName'] as String?) ?? offer?.name ?? 'SonicRelay Desktop',
+      name:
+          (body['publisherName'] as String?) ??
+          offer?.name ??
+          'SonicRelay Desktop',
       pin: pin,
       credential: credential,
       lastEndpoints: [endpoint, ...endpoints.where((e) => e != endpoint)],
@@ -141,38 +151,6 @@ class LanPairingApi {
       if (bytes[i] != prefix[i]) return false;
     }
     return true;
-  }
-
-  static Future<LanHttpResponse> _defaultPost(
-    String endpoint,
-    Map<String, Object?> body,
-    PinPolicy policy,
-  ) async {
-    String? seenPin;
-    final client = createPinnedHttpClient(
-      pin: policy.pin,
-      pinPrefix: policy.pinPrefix,
-      onCertificate: (pin) => seenPin = pin,
-    );
-    try {
-      final request = await client
-          .postUrl(Uri.parse('https://$endpoint/lan/v1/pair'))
-          .timeout(const Duration(seconds: 3));
-      request.headers.contentType = ContentType.json;
-      request.write(jsonEncode(body));
-      final response = await request.close().timeout(const Duration(seconds: 10));
-      final text = await response.transform(utf8.decoder).join();
-      Map<String, dynamic> json = const {};
-      try {
-        final decoded = jsonDecode(text);
-        if (decoded is Map<String, dynamic>) json = decoded;
-      } on FormatException {
-        // Error bodies are optional; the status code carries the meaning.
-      }
-      return LanHttpResponse(response.statusCode, json, certificatePin: seenPin);
-    } finally {
-      client.close(force: true);
-    }
   }
 }
 

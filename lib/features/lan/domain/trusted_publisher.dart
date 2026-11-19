@@ -57,14 +57,15 @@ class TrustedPublisher {
     if (lastSeenAt != null) 'lastSeenAt': lastSeenAt!.toUtc().toIso8601String(),
   };
 
-  static TrustedPublisher fromJson(Map<String, dynamic> json) => TrustedPublisher(
-    publisherDeviceId: json['publisherDeviceId'] as String,
-    name: json['name'] as String,
-    pin: json['pin'] as String,
-    credential: json['credential'] as String,
-    lastEndpoints: (json['lastEndpoints'] as List).cast<String>(),
-    lastSeenAt: json['lastSeenAt'] == null
-        ? null
-        : DateTime.parse(json['lastSeenAt'] as String),
-  );
+  static TrustedPublisher fromJson(Map<String, dynamic> json) =>
+      TrustedPublisher(
+        publisherDeviceId: json['publisherDeviceId'] as String,
+        name: json['name'] as String,
+        pin: json['pin'] as String,
+        credential: json['credential'] as String,
+        lastEndpoints: (json['lastEndpoints'] as List).cast<String>(),
+        lastSeenAt: json['lastSeenAt'] == null
+            ? null
+            : DateTime.parse(json['lastSeenAt'] as String),
+      );
 }

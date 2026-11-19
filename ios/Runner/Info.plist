@@ -24,6 +24,13 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Find and connect to SonicRelay on your local network so audio can stream without the internet.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_sonicrelay._tcp</string>
+		<string>_sonicrelay-viewer._tcp</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Scan a SonicRelay QR code to pair this device with a publisher.</string>
 	<key>UIBackgroundModes</key>

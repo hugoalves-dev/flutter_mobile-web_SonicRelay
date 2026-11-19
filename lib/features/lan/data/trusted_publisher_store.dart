@@ -47,12 +47,23 @@ class TrustedPublisherStore {
   }
 
   /// Moves [endpoints] to the front (newest first), de-duplicated, capped.
-  Future<void> updateEndpoints(String publisherDeviceId, List<String> endpoints) async {
+  Future<void> updateEndpoints(
+    String publisherDeviceId,
+    List<String> endpoints,
+  ) async {
     final all = await list();
-    final index = all.indexWhere((p) => p.publisherDeviceId == publisherDeviceId);
+    final index = all.indexWhere(
+      (p) => p.publisherDeviceId == publisherDeviceId,
+    );
     if (index < 0) return;
-    final merged = <String>[...endpoints, ...all[index].lastEndpoints].toSet().take(maxEndpoints).toList();
-    all[index] = all[index].copyWith(lastEndpoints: merged, lastSeenAt: DateTime.now().toUtc());
+    final merged = <String>{
+      ...endpoints,
+      ...all[index].lastEndpoints,
+    }.take(maxEndpoints).toList();
+    all[index] = all[index].copyWith(
+      lastEndpoints: merged,
+      lastSeenAt: DateTime.now().toUtc(),
+    );
     await _write(all);
   }
 

@@ -40,7 +40,10 @@ class ManualPairingCode {
       data[i] = (value & BigInt.from(0xFF)).toInt();
       value >>= 8;
     }
-    return (pinPrefix: data.sublist(0, partLength), secret: data.sublist(partLength));
+    return (
+      pinPrefix: data.sublist(0, partLength),
+      secret: data.sublist(partLength),
+    );
   }
 
   /// The canonical `XXXX-XXXX-XXXX-XXXX` form of a typed code, or null.

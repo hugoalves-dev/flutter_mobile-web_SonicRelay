@@ -57,6 +57,9 @@ dependencies:
   # `core/websocket/web_websocket_connector.dart`, so it adds nothing to the
   # mobile builds (dotnet_SonicRelay#33).
   web: ^1.1.1
+  # mDNS/DNS-SD for LAN discovery (dotnet_SonicRelay#75): Android NSD and
+  # Apple Bonjour, no Google Play services.
+  bonsoir: ^6.0.0
 
 dev_dependencies:
   flutter_test:

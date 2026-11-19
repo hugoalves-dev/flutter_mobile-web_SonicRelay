@@ -41,6 +41,54 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.13.1"
+  bonsoir:
+    dependency: "direct main"
+    description:
+      name: bonsoir
+      sha256: "36b9ddf48a3a5933a3edf9f745ac011f57f50d0d5634cd6ffeabc49e09965a6f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.0.0"
+  bonsoir_android:
+    dependency: transitive
+    description:
+      name: bonsoir_android
+      sha256: bfa3ab7e2f65473cb369bce639dbdbdc75064848c01ac11b3c2bc3e16031ff3a
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.0.2"
+  bonsoir_darwin:
+    dependency: transitive
+    description:
+      name: bonsoir_darwin
+      sha256: d62fd62ed433aa09ec99f71f95dae53ffa0adf788c9051ff3d6b903463045d3c
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.1.0"
+  bonsoir_linux:
+    dependency: transitive
+    description:
+      name: bonsoir_linux
+      sha256: a49d5f328a197b27a3901b833f92c93366f2cd7085dcb495fa11ee6d9f2509a9
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.0.3"
+  bonsoir_platform_interface:
+    dependency: transitive
+    description:
+      name: bonsoir_platform_interface
+      sha256: ba1cc30daaa172dfc76f88e4fee8d090674179439201997ba2b3bd9e1cca84c0
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.1.0"
+  bonsoir_windows:
+    dependency: transitive
+    description:
+      name: bonsoir_windows
+      sha256: "01aba2516b776eb1deb68845124dc0a41095da108276d4b307bf19c4c3e2d9b1"
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.0.3"
   boolean_selector:
     dependency: transitive
     description:

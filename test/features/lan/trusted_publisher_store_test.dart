@@ -7,7 +7,9 @@ void main() {
   const storage = FlutterSecureStorage();
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
 
-  TrustedPublisher publisher({String id = '8f14e45f-ceea-467e-9b4a-1f3a2b6c7d8e'}) => TrustedPublisher(
+  TrustedPublisher publisher({
+    String id = '8f14e45f-ceea-467e-9b4a-1f3a2b6c7d8e',
+  }) => TrustedPublisher(
     publisherDeviceId: id,
     name: 'DESKTOP-01',
     pin: 'A5BYxvLAy0ksUzsKTRTvd8wPeKvMztUofYShogEc-4E',
@@ -45,23 +47,26 @@ void main() {
     expect(await store.list(), isEmpty);
   });
 
-  test('updateEndpoints keeps the newest first without duplicates, max 4', () async {
-    const store = TrustedPublisherStore(storage);
-    await store.save(publisher());
+  test(
+    'updateEndpoints keeps the newest first without duplicates, max 4',
+    () async {
+      const store = TrustedPublisherStore(storage);
+      await store.save(publisher());
 
-    await store.updateEndpoints('8f14e45f-ceea-467e-9b4a-1f3a2b6c7d8e', [
-      '10.0.0.5:47321',
-      '192.168.1.20:47321',
-      'a.local:1',
-      'b.local:1',
-      'c.local:1',
-    ]);
+      await store.updateEndpoints('8f14e45f-ceea-467e-9b4a-1f3a2b6c7d8e', [
+        '10.0.0.5:47321',
+        '192.168.1.20:47321',
+        'a.local:1',
+        'b.local:1',
+        'c.local:1',
+      ]);
 
-    final endpoints = (await store.list()).single.lastEndpoints;
-    expect(endpoints.first, '10.0.0.5:47321');
-    expect(endpoints, hasLength(4));
-    expect(endpoints.toSet(), hasLength(4));
-  });
+      final endpoints = (await store.list()).single.lastEndpoints;
+      expect(endpoints.first, '10.0.0.5:47321');
+      expect(endpoints, hasLength(4));
+      expect(endpoints.toSet(), hasLength(4));
+    },
+  );
 
   test('a corrupt store reads as empty', () async {
     await storage.write(key: 'lan.trustedPublishers', value: '{oops');
@@ -77,7 +82,9 @@ void main() {
 
     expect(first, second);
     expect(
-      RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$').hasMatch(first),
+      RegExp(
+        r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+      ).hasMatch(first),
       isTrue,
     );
   });

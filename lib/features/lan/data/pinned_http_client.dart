@@ -10,7 +10,11 @@ String certificatePin(X509Certificate certificate) =>
 /// Whether [certificate] is the pinned desktop. With a full [pin] the whole
 /// digest must match; with only [pinPrefix] (manual-code pairing) its first
 /// bytes must. With neither, nothing is trusted.
-bool pinMatches(X509Certificate certificate, {String? pin, List<int>? pinPrefix}) {
+bool pinMatches(
+  X509Certificate certificate, {
+  String? pin,
+  List<int>? pinPrefix,
+}) {
   if (pin != null) return certificatePin(certificate) == pin;
   if (pinPrefix == null || pinPrefix.isEmpty) return false;
   final digest = sha256.convert(certificate.der).bytes;

@@ -33,7 +33,9 @@ class PairingPayload {
     final cloudJson = decoded['cloud'];
     final lanJson = decoded['lan'];
     if (cloudJson == null && lanJson == null) {
-      throw const FormatException('The pairing payload has no cloud or LAN block.');
+      throw const FormatException(
+        'The pairing payload has no cloud or LAN block.',
+      );
     }
 
     return PairingPayload(

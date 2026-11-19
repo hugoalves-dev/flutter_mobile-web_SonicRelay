@@ -21,6 +21,9 @@ const _ioOnlyLibraries = {
   'lib/core/platform/io_host_device_name.dart',
   'lib/core/platform/io_host_platform.dart',
   'lib/core/websocket/io_websocket_connector.dart',
+  // LAN mode (dotnet_SonicRelay#75); web counterpart: web_lan_platform.dart.
+  'lib/features/lan/data/io_lan_platform.dart',
+  'lib/features/lan/data/pinned_http_client.dart',
 };
 
 /// One `import`/`export` directive: its default target plus any conditional

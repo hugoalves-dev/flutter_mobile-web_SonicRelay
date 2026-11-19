@@ -52,5 +52,6 @@ class LanFailure implements Exception {
   };
 
   @override
-  String toString() => '${code.diagnosticCode}${detail == null ? '' : ': $detail'}';
+  String toString() =>
+      '${code.diagnosticCode}${detail == null ? '' : ': $detail'}';
 }

@@ -46,7 +46,9 @@ void main() {
   });
 
   test('v2 lan only', () {
-    final payload = PairingPayload.parse(jsonEncode({'v': 2, 'lan': lanBlock()}));
+    final payload = PairingPayload.parse(
+      jsonEncode({'v': 2, 'lan': lanBlock()}),
+    );
 
     expect(payload.cloud, isNull);
     expect(payload.lan!.pin, startsWith('A5BY'));
