@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sonic_relay/core/diagnostics/file_diagnostic_log.dart';
 import 'package:sonic_relay/core/websocket/websocket_client.dart';
 import 'package:sonic_relay/features/device_identity/data/device_identity_session.dart';
+import 'package:sonic_relay/features/lan/data/lan_platform_contract.dart';
 import 'package:sonic_relay/features/lan/domain/lan_failure.dart';
 import 'package:sonic_relay/features/lan/domain/lan_session_target.dart';
 import 'package:sonic_relay/features/lan/domain/trusted_publisher.dart';
@@ -133,6 +134,33 @@ void main() {
       },
     );
   }
+
+  test(
+    'a certificate rejected after the probe is reported as pin mismatch',
+    () async {
+      final failures = <LanFailure>[];
+      client.lanFailures.listen(failures.add);
+      final session = lanSession();
+
+      await client.connect(
+        session: StreamSession(
+          sessionId: session.sessionId,
+          signalingUrl: session.signalingUrl,
+          lan: LanSessionTarget(
+            publisher: publisher,
+            viewerDeviceId: viewerId,
+            connector: (_, _) async => throw const LanTransportException(
+              LanTransportFailure.tlsRejected,
+              'certificate changed',
+            ),
+          ),
+        ),
+      );
+      await settle();
+
+      expect(failures.single.code, LanFailureCode.pinMismatch);
+    },
+  );
 
   test('a dropped LAN socket reconnects on the same transport', () async {
     await client.connect(session: lanSession());

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/di/app_providers.dart';
+import '../../../app/di/lan_providers.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../sessions/presentation/join_session_view_model.dart';
 import '../../sessions/presentation/widgets/public_room_card.dart';
@@ -24,7 +25,8 @@ class _PairingPageState extends ConsumerState<PairingPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
+      // lanOnly (dotnet_SonicRelay#75): cloud pairings are never loaded.
+      if (mounted && !ref.read(lanOnlyActiveProvider)) {
         unawaited(
           ref.read(pairingViewModelProvider.notifier).loadCurrentPairings(),
         );
@@ -36,9 +38,11 @@ class _PairingPageState extends ConsumerState<PairingPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(pairingViewModelProvider);
     final viewModel = ref.read(pairingViewModelProvider.notifier);
+    final lanOnly = ref.watch(lanOnlyActiveProvider);
     final isReady =
+        lanOnly ||
         ref.watch(deviceReadinessProvider).status ==
-        DeviceReadinessStatus.ready;
+            DeviceReadinessStatus.ready;
     final joinState = ref.watch(joinSessionViewModelProvider);
     // Public Radio joins straight from this screen, without ever visiting /join, so this page
     // owns the same navigate-on-joined listener join_session_page.dart uses for its own taps.
@@ -82,38 +86,43 @@ class _PairingPageState extends ConsumerState<PairingPage> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            Text(
-              'Listen without pairing',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'No publisher yet? Join the always-on Public Radio stream instantly — '
-              'no QR code, challenge ID, or pairing code needed.',
-            ),
-            const SizedBox(height: 20),
-            const PublicRoomCard(),
-            if (joinState.retryPublicRoomSessionId != null &&
-                joinState.status == JoinSessionStatus.failed)
-              if (joinState.errorMessage case final message?) ...[
-                const SizedBox(height: AppSpacing.md),
-                SessionStatusCard(
-                  message: message,
-                  onRetry: joinState.canRetry
-                      ? ref.read(joinSessionViewModelProvider.notifier).retry
-                      : null,
-                ),
-              ],
-            const SizedBox(height: 28),
-            const Divider(),
-            const SizedBox(height: 20),
+            if (!lanOnly) ...[
+              Text(
+                'Listen without pairing',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'No publisher yet? Join the always-on Public Radio stream instantly — '
+                'no QR code, challenge ID, or pairing code needed.',
+              ),
+              const SizedBox(height: 20),
+              const PublicRoomCard(),
+              if (joinState.retryPublicRoomSessionId != null &&
+                  joinState.status == JoinSessionStatus.failed)
+                if (joinState.errorMessage case final message?) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  SessionStatusCard(
+                    message: message,
+                    onRetry: joinState.canRetry
+                        ? ref.read(joinSessionViewModelProvider.notifier).retry
+                        : null,
+                  ),
+                ],
+              const SizedBox(height: 28),
+              const Divider(),
+              const SizedBox(height: 20),
+            ],
             Text(
               'Pair with a publisher',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Scan the QR code shown by SonicRelay Windows or enter its pairing details manually.',
+            Text(
+              lanOnly
+                  ? 'Local network only: scan the QR code shown by SonicRelay on the PC. '
+                        'For a PC on another network segment, pair by address in Settings → Local network.'
+                  : 'Scan the QR code shown by SonicRelay Windows or enter its pairing details manually.',
             ),
             const SizedBox(height: 20),
             FilledButton.icon(
@@ -123,41 +132,43 @@ class _PairingPageState extends ConsumerState<PairingPage> {
               icon: const Icon(Icons.qr_code_scanner),
               label: const Text('Scan QR code'),
             ),
-            const SizedBox(height: 24),
-            const Divider(),
-            const SizedBox(height: 12),
-            TextField(
-              key: const Key('pairing-challenge-id'),
-              enabled: !state.isBusy,
-              autocorrect: false,
-              decoration: const InputDecoration(
-                labelText: 'Challenge ID',
-                border: OutlineInputBorder(),
+            if (!lanOnly) ...[
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 12),
+              TextField(
+                key: const Key('pairing-challenge-id'),
+                enabled: !state.isBusy,
+                autocorrect: false,
+                decoration: const InputDecoration(
+                  labelText: 'Challenge ID',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: viewModel.updateChallengeId,
               ),
-              onChanged: viewModel.updateChallengeId,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              key: const Key('pairing-code'),
-              enabled: !state.isBusy,
-              autocorrect: false,
-              textCapitalization: TextCapitalization.characters,
-              decoration: const InputDecoration(
-                labelText: 'Pairing code',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 12),
+              TextField(
+                key: const Key('pairing-code'),
+                enabled: !state.isBusy,
+                autocorrect: false,
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(
+                  labelText: 'Pairing code',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: viewModel.updatePairingCode,
               ),
-              onChanged: viewModel.updatePairingCode,
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: state.isBusy ? null : viewModel.completeManual,
-              child: state.status == PairingStatus.submitting
-                  ? const SizedBox.square(
-                      dimension: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Pair device'),
-            ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: state.isBusy ? null : viewModel.completeManual,
+                child: state.status == PairingStatus.submitting
+                    ? const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Pair device'),
+              ),
+            ],
             if (state.status == PairingStatus.paired) ...[
               const SizedBox(height: 16),
               const Text('Device paired.'),
@@ -169,7 +180,7 @@ class _PairingPageState extends ConsumerState<PairingPage> {
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ],
-            if (state.pairings.isNotEmpty) ...[
+            if (!lanOnly && state.pairings.isNotEmpty) ...[
               const SizedBox(height: 28),
               Text(
                 'Active pairings',

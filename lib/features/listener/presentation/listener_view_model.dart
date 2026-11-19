@@ -41,13 +41,14 @@ class ListenerState {
     SignalingConnectionState? signaling,
     bool? isLan,
     String? lanFailure,
+    bool clearLanFailure = false,
   }) {
     return ListenerState(
       connection: connection ?? this.connection,
       stats: stats ?? this.stats,
       signaling: signaling ?? this.signaling,
       isLan: isLan ?? this.isLan,
-      lanFailure: lanFailure ?? this.lanFailure,
+      lanFailure: clearLanFailure ? null : (lanFailure ?? this.lanFailure),
     );
   }
 }
@@ -142,8 +143,11 @@ class ListenerViewModel extends Notifier<ListenerState> {
   /// routed to the WebRTC receiver (wired in [build]), so once connected the
   /// publisher handshake (`viewer.ready` -> offer -> answer) proceeds on its
   /// own. Throws if the socket cannot be opened.
-  Future<void> connect({required StreamSession session}) =>
-      _signaling.connect(session: session);
+  Future<void> connect({required StreamSession session}) {
+    // A failure belongs to the session that reported it, never to the next one.
+    state = state.copyWith(clearLanFailure: true, isLan: session.isLan);
+    return _signaling.connect(session: session);
+  }
 
   /// Nudges a stalled connection to recover by re-announcing readiness to the
   /// publisher (invoked from the background notification's "Reconnect" action).

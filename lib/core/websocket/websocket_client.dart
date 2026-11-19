@@ -46,10 +46,17 @@ typedef WebSocketCloseReconnectPredicate = bool Function(int? closeCode);
 /// Why a connection stopped for good: a close code the caller marked terminal,
 /// or the attempt budget given to [WebSocketClient.connect] ran out.
 class WebSocketTermination {
-  const WebSocketTermination({this.closeCode, this.exhausted = false});
+  const WebSocketTermination({
+    this.closeCode,
+    this.exhausted = false,
+    this.error,
+  });
 
   final int? closeCode;
   final bool exhausted;
+
+  /// The connect error the caller declared non-retryable, if that is why it stopped.
+  final Object? error;
 }
 
 typedef WebSocketConnector =
@@ -361,8 +368,7 @@ class WebSocketClient {
       unawaited(_diagnosticLog.write('WebSocket', 'connect failed'));
       _disconnectReasonController.add(WebSocketDisconnectReason.connectFailed);
       if (!_shouldReconnectOnError(error)) {
-        _stopped = true;
-        _stateController.add(WebSocketConnectionState.disconnected);
+        _terminate(WebSocketTermination(error: error));
         return;
       }
       _scheduleReconnect(generation);
@@ -443,6 +449,8 @@ class WebSocketClient {
         'WebSocket',
         termination.exhausted
             ? 'reconnect budget exhausted; stopping'
+            : termination.error != null
+            ? 'non-retryable connect error; stopping'
             : 'terminal close code ${termination.closeCode}; stopping',
       ),
     );

@@ -179,13 +179,18 @@ class SignalingClient {
 
   void _handleTermination(WebSocketTermination termination) {
     if (!isLanSession) return;
-    final code = switch (termination.closeCode) {
-      LanCloseCodes.unauthorized => LanFailureCode.unauthorized,
-      LanCloseCodes.revoked => LanFailureCode.revoked,
-      LanCloseCodes.unavailable => LanFailureCode.sessionUnavailable,
-      LanCloseCodes.sessionEnded => null,
-      _ => LanFailureCode.unreachable,
-    };
+    final error = termination.error;
+    final code =
+        error is LanTransportException &&
+            error.failure == LanTransportFailure.tlsRejected
+        ? LanFailureCode.pinMismatch
+        : switch (termination.closeCode) {
+            LanCloseCodes.unauthorized => LanFailureCode.unauthorized,
+            LanCloseCodes.revoked => LanFailureCode.revoked,
+            LanCloseCodes.unavailable => LanFailureCode.sessionUnavailable,
+            LanCloseCodes.sessionEnded => null,
+            _ => LanFailureCode.unreachable,
+          };
     if (code == null) return;
     unawaited(
       _diagnosticLog.write('Signaling', 'LAN stopped: ${code.diagnosticCode}'),
