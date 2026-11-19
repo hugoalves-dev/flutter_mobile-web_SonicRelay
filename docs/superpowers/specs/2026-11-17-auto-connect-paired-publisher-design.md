@@ -94,8 +94,8 @@ Per session id, kept in memory by the coordinator:
 
 | Failure | Action |
 | --- | --- |
-| `network` / `manualRetry` | retry the same session after 5 s, 15 s, 45 s; then block it |
-| `maxViewers` | block that session id (a later new session is fine) |
+| `network` / `manualRetry` | retry the same session after 5 s, 15 s, 45 s; then every 5 min |
+| `maxViewers` | retry that session every 5 min |
 | `invalidCode` (session gone/ended) | block that session id |
 | `notPaired` | block; show "Pairing with <device> is no longer active" |
 | `unauthorized` / `missingDevice` | stop auto-connect until next app start; show error |
@@ -105,14 +105,24 @@ A blocked session is never auto-attempted again in this process. The user can st
 tap it manually. A publisher that is offline or has no session produces no attempts
 and no errors (status stays "Waiting for <device>").
 
+Transient failures cool down instead of blocking (changed after review): the desktop
+publisher keeps one session id alive for hours by rotating its join code, so a
+permanent block after a short outage would disable auto-connect to that PC until the
+app restarts. Five minutes keeps attempts bounded without giving up.
+
+Auto-connect only acts while the join page is mounted (`attach`/`detach` from the
+banner). A settings change made from the listener page, or a failure that lands after
+the page was left, never starts or schedules a join.
+
 ### Leave
 
-When the user taps Leave/Disconnect in the listener, auto-connect is **paused** until
-the next cold start of the app or until the user taps "Resume auto-connect" on the
-join page status banner. Pause is in memory only. A session ended by the publisher or
-a dropped connection does not pause it (the next session from that publisher is
-joined). The current session id is also blocked on Leave, so resuming does not
-immediately rejoin the session that was just left — only a new one.
+When the user taps Leave/Disconnect in the listener (or Stop on the notification, or
+backs out while waiting), auto-connect is **paused** until the next cold start of the
+app or until the user taps "Resume" on the join page status banner. Pause is in memory
+only. Resume is the user's explicit go-ahead and may rejoin the same session (its id
+lives for hours on the desktop). Leaving a session the publisher already ended ("Back
+to sessions" on an ended stream) and a dropped connection do not pause it: the next
+session from that publisher is joined.
 
 ### Status banner (join page)
 
