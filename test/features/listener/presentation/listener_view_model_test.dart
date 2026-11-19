@@ -3,7 +3,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sonic_relay/features/auto_connect/presentation/auto_connect_controller.dart';
+import 'package:sonic_relay/features/auto_connect/presentation/auto_connect_settings_notifier.dart';
 import 'package:sonic_relay/app/di/app_providers.dart';
 import 'package:sonic_relay/core/diagnostics/diagnostic_log.dart';
 import 'package:sonic_relay/core/diagnostics/file_diagnostic_log.dart';
@@ -223,6 +226,76 @@ void main() {
       expect(connection.closed, isTrue);
     },
   );
+
+  test('leaving pauses auto-connect so the session is not rejoined', () async {
+    FlutterSecureStorage.setMockInitialValues({
+      'autoConnect.enabled': 'true',
+      'autoConnect.publisherDeviceId': 'pub-1',
+    });
+    final signalingClient = SignalingClient(
+      webSocketClient: WebSocketClient(
+        diagnosticLog: _testLog(),
+        connector: (uri, headers) async => FakeWebSocketConnection(),
+        scheduleTimer: (delay, callback) => Timer(Duration.zero, callback),
+      ),
+      deviceIdentitySession: FakeDeviceIdentitySession(),
+      diagnosticLog: _testLog(),
+    );
+    final container = ProviderContainer(
+      overrides: [
+        audioReceiverServiceProvider.overrideWithValue(
+          FakeAudioReceiverService(),
+        ),
+        signalingClientProvider.overrideWithValue(signalingClient),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(autoConnectSettingsProvider.future);
+    container.read(listenerViewModelProvider);
+
+    await container.read(listenerViewModelProvider.notifier).leave();
+
+    expect(
+      container.read(autoConnectControllerProvider).phase,
+      AutoConnectPhase.paused,
+    );
+  });
+
+  test('leaving a session the publisher ended keeps auto-connect on', () async {
+    FlutterSecureStorage.setMockInitialValues({
+      'autoConnect.enabled': 'true',
+      'autoConnect.publisherDeviceId': 'pub-1',
+    });
+    final signalingClient = SignalingClient(
+      webSocketClient: WebSocketClient(
+        diagnosticLog: _testLog(),
+        connector: (uri, headers) async => FakeWebSocketConnection(),
+        scheduleTimer: (delay, callback) => Timer(Duration.zero, callback),
+      ),
+      deviceIdentitySession: FakeDeviceIdentitySession(),
+      diagnosticLog: _testLog(),
+    );
+    final container = ProviderContainer(
+      overrides: [
+        audioReceiverServiceProvider.overrideWithValue(
+          FakeAudioReceiverService(),
+        ),
+        signalingClientProvider.overrideWithValue(signalingClient),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(autoConnectSettingsProvider.future);
+    container.read(listenerViewModelProvider);
+
+    await container
+        .read(listenerViewModelProvider.notifier)
+        .leave(pauseAutoConnect: false);
+
+    expect(
+      container.read(autoConnectControllerProvider).phase,
+      isNot(AutoConnectPhase.paused),
+    );
+  });
 
   test(
     'leave invalidates pending signaling before slow receiver teardown',

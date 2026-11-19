@@ -10,6 +10,7 @@ import '../../../core/widgets/connection_badge.dart';
 import '../../../core/widgets/sonic_button.dart';
 import '../../../core/webrtc/connectivity_modes.dart';
 import '../../../core/widgets/sonic_card.dart';
+import '../../auto_connect/presentation/auto_connect_banner.dart';
 import '../../lan/presentation/lan_publishers_card.dart';
 import '../../support/presentation/widgets/support_project_card.dart';
 import 'join_session_view_model.dart';
@@ -86,6 +87,7 @@ class JoinSessionPage extends ConsumerWidget {
                   ),
                   if (cloudEnabled) ...[
                     const SizedBox(height: AppSpacing.lg),
+                    const AutoConnectBanner(),
                     Text(
                       'Enter session code',
                       style: Theme.of(context).textTheme.headlineMedium,

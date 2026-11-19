@@ -140,7 +140,19 @@ class _InitialServerSetupPageState
   }
 
   bool _isValidTurnUrl(String value) =>
-      RegExp(r'^turns?:[^\s:]+').hasMatch(value.trim());
+      value.isEmpty || RegExp(r'^turns?:[^\s:]+').hasMatch(value);
+
+  /// The override to persist, or null to keep the TURN servers the API hands
+  /// out. The pre-filled default is the default API's own relay, so leaving it
+  /// untouched must not pin it as an override: the backend's credentials only
+  /// work with relays sharing its secret (see [CoturnOverrideStorage]).
+  String? _turnOverride(String turnUrl) {
+    if (turnUrl.isEmpty) return null;
+    final unchangedDefault =
+        turnUrl == AppConfig.defaultTurnUrl &&
+        ref.read(coturnOverrideProvider) == null;
+    return unchangedDefault ? null : turnUrl;
+  }
 
   Future<void> _save() async {
     final apiUrl = AppConfig.normalizeServerUrl(_apiController.text);
@@ -151,7 +163,8 @@ class _InitialServerSetupPageState
           : 'Enter a valid HTTP or HTTPS URL.';
       _turnError = _isValidTurnUrl(turnUrl)
           ? null
-          : 'Enter a valid TURN URL, e.g. turn:relay.example.com:3478';
+          : 'Enter a valid TURN URL, e.g. turn:relay.example.com:3478, '
+                'or leave it empty.';
       _saveError = null;
     });
     if (_apiError != null || _turnError != null) return;
@@ -159,7 +172,11 @@ class _InitialServerSetupPageState
     setState(() => _saving = true);
     try {
       await ref.read(serverUrlProvider.notifier).update(apiUrl);
-      await ref.read(coturnOverrideProvider.notifier).set(turnUrl);
+      final turnOverride = _turnOverride(turnUrl);
+      await ref.read(coturnOverrideProvider.notifier).set(turnOverride);
+      await ref
+          .read(relaySettingsSyncProvider)
+          .queueCoturnUrlPush(turnOverride);
       await ref.read(initialServerSetupCompletedProvider.notifier).complete();
       if (!mounted) return;
       widget.onComplete();
@@ -214,7 +231,8 @@ class _InitialServerSetupPageState
                   children: [
                     const Text(
                       'Review the API and TURN server addresses. SonicRelay will '
-                      'connect only after you save them.',
+                      'connect only after you save them. Leave the TURN address '
+                      'empty to use the one provided by the API.',
                     ),
                     const SizedBox(height: 16),
                     SonicTextField(

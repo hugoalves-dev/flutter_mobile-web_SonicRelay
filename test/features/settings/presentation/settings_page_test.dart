@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sonic_relay/app/di/app_providers.dart';
 import 'package:sonic_relay/core/storage/relay_mode_storage.dart';
 import 'package:sonic_relay/core/webrtc/relay_modes.dart';
+import 'package:sonic_relay/features/auto_connect/presentation/paired_publishers_provider.dart';
 import 'package:sonic_relay/features/settings/presentation/settings_page.dart';
 import 'package:sonic_relay/features/support/presentation/widgets/support_project_card.dart';
 
@@ -44,6 +45,7 @@ Future<void> _pumpSettings(
           Directory.systemTemp.createTempSync('sonicrelay_settings_test_').path,
         ),
         relayModeStorageProvider.overrideWithValue(_FakeRelayModeStorage()),
+        pairedPublishersProvider.overrideWith((ref) async => const []),
       ],
       child: const MaterialApp(home: SettingsPage()),
     ),

@@ -1,7 +1,11 @@
 <en-US>
-- Review and edit the API and TURN server addresses before the app connects for the first time.
+- Local network: listen to a paired PC on the same network, even without internet.
+- Pair offline by scanning the PC's QR code, or type its address and local code when it is on another network segment.
+- Choose Automatic, Local network only or RelayControl only in Settings; the listener shows the path the audio is using.
 </en-US>
 
 <pt-BR>
-- Revise e altere os endereços da API e do servidor TURN antes da primeira conexão do app.
+- Rede local: ouça um PC pareado na mesma rede, mesmo sem internet.
+- Pareie offline lendo o QR code do PC ou digitando o endereço e o código local quando ele estiver em outro segmento da rede.
+- Escolha Automático, Somente rede local ou Somente RelayControl em Settings; o player mostra o caminho usado pelo áudio.
 </pt-BR>

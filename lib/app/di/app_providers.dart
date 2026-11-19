@@ -14,6 +14,7 @@ import '../../core/http/dio_client.dart';
 import '../../core/network/network_monitor.dart';
 import '../../core/platform/host_device_name.dart';
 import '../../core/platform/host_platform.dart';
+import '../../core/storage/auto_connect_storage.dart';
 import '../../core/storage/background_playback_storage.dart';
 import '../../core/storage/coturn_override_storage.dart';
 import '../../core/storage/initial_server_setup_storage.dart';
@@ -98,9 +99,15 @@ class InitialServerSetupCompletedNotifier extends Notifier<bool> {
   @override
   bool build() => _initial;
 
-  Future<void> complete() async {
-    await ref.read(initialServerSetupStorageProvider).write(true);
-    state = true;
+  Future<void> complete() => _set(true);
+
+  /// Shows the first-run server setup again, so an address that turned out to be
+  /// wrong can be fixed from the device-setup error screen.
+  Future<void> reopen() => _set(false);
+
+  Future<void> _set(bool completed) async {
+    await ref.read(initialServerSetupStorageProvider).write(completed);
+    state = completed;
   }
 }
 
@@ -187,6 +194,10 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
   }
 }
 
+final autoConnectStorageProvider = Provider<AutoConnectStorage>(
+  (ref) => AutoConnectStorage(ref.watch(secureStorageProvider)),
+);
+
 final relaySettingsApiProvider = Provider<RelaySettingsApi>(
   (ref) => RelaySettingsApi(ref.watch(dioProvider)),
 );
@@ -216,6 +227,12 @@ class RelaySettingsSync {
       if (RelayModes.isValid(settings.relayMode)) {
         await _ref.read(relayModeProvider.notifier).set(settings.relayMode);
       }
+      if (await _ref.read(coturnOverrideStorageProvider).readPendingSync()) {
+        // The first-run choice was saved before the backend was reachable; the
+        // backend's value is stale, so publish the local choice instead.
+        await pushCoturnUrl(_ref.read(coturnOverrideProvider));
+        return;
+      }
       await _ref
           .read(coturnOverrideProvider.notifier)
           .set(settings.turnUris.isEmpty ? null : settings.turnUris.first);
@@ -223,6 +240,12 @@ class RelaySettingsSync {
       // Keep the local values; sync must never break the settings screen.
     }
   }
+
+  /// Records a TURN override chosen before the device could authenticate, so
+  /// the next [pull] pushes it instead of replacing it with the backend's value.
+  Future<void> queueCoturnUrlPush(String? url) => _ref
+      .read(coturnOverrideStorageProvider)
+      .writePendingSync(url != null && url.trim().isNotEmpty);
 
   Future<void> pushRelayMode(String mode) async {
     try {
@@ -242,6 +265,7 @@ class RelaySettingsSync {
                 ? const []
                 : [normalized],
           );
+      await _ref.read(coturnOverrideStorageProvider).writePendingSync(false);
     } catch (_) {
       // Same best-effort contract as pushRelayMode.
     }

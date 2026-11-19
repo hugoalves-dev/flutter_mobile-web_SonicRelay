@@ -8,7 +8,11 @@ import 'package:sonic_relay/app/di/app_providers.dart';
 import 'package:sonic_relay/app/sonic_relay_app.dart';
 import 'package:sonic_relay/core/diagnostics/sonic_log.dart';
 import 'package:dio/dio.dart';
+import 'package:sonic_relay/core/storage/auto_connect_storage.dart';
 import 'package:sonic_relay/core/storage/relay_mode_storage.dart';
+import 'package:sonic_relay/features/auto_connect/domain/auto_connect_settings.dart';
+import 'package:sonic_relay/features/auto_connect/presentation/paired_publishers_provider.dart';
+import 'package:sonic_relay/features/pairing/domain/device_pairing.dart';
 import 'package:sonic_relay/core/storage/theme_mode_storage.dart';
 import 'package:sonic_relay/core/webrtc/relay_modes.dart';
 import 'package:sonic_relay/core/webrtc/relay_settings_api.dart';
@@ -82,9 +86,27 @@ ProviderScope testApp() => ProviderScope(
       (ref) => Stream.value(const PublicRoomInfo.disabled()),
     ),
     relaySettingsApiProvider.overrideWithValue(_FakeRelaySettingsApi()),
+    ..._autoConnectOverrides,
   ],
   child: const SonicRelayApp(),
 );
+
+/// Auto-connect reads its preference from secure storage on the join page and lists
+/// pairings over Dio in Settings; neither is reachable under `flutter test`.
+class _FakeAutoConnectStorage extends AutoConnectStorage {
+  _FakeAutoConnectStorage() : super(const FlutterSecureStorage());
+
+  @override
+  Future<AutoConnectSettings> read() async => AutoConnectSettings.off;
+
+  @override
+  Future<void> write(AutoConnectSettings settings) async {}
+}
+
+final _autoConnectOverrides = [
+  autoConnectStorageProvider.overrideWithValue(_FakeAutoConnectStorage()),
+  pairedPublishersProvider.overrideWith((ref) async => const <DevicePairing>[]),
+];
 
 void main() {
   testWidgets(
@@ -166,6 +188,7 @@ void main() {
               (ref) => Stream.value(const PublicRoomInfo.disabled()),
             ),
             relaySettingsApiProvider.overrideWithValue(_FakeRelaySettingsApi()),
+            ..._autoConnectOverrides,
           ],
           child: MaterialApp(
             theme: ThemeData.dark(useMaterial3: true),
@@ -235,6 +258,7 @@ void main() {
           (ref) => Stream.value(const PublicRoomInfo.disabled()),
         ),
         relaySettingsApiProvider.overrideWithValue(_FakeRelaySettingsApi()),
+        ..._autoConnectOverrides,
       ],
     );
     addTearDown(container.dispose);

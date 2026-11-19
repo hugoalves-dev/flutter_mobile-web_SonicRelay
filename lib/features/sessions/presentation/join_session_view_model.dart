@@ -125,7 +125,13 @@ class JoinSessionViewModel extends Notifier<JoinSessionState> {
     return target != null ? joinDiscovered(target) : join();
   }
 
-  Future<void> joinDiscovered(DiscoverableSession session) async {
+  /// Joins a discovered session without a code. Returns null on success, or the failure
+  /// kind so automatic callers (auto-connect) can decide whether to retry; an unexpected
+  /// error is reported as [SessionsFailureKind.network], which only ever earns a bounded
+  /// retry.
+  Future<SessionsFailureKind?> joinDiscovered(
+    DiscoverableSession session,
+  ) async {
     state = JoinSessionState(
       code: state.code,
       status: JoinSessionStatus.joining,
@@ -138,8 +144,10 @@ class JoinSessionViewModel extends Notifier<JoinSessionState> {
         status: JoinSessionStatus.joined,
         session: joined,
       );
+      return null;
     } on SessionsFailure catch (error) {
       _applyFailure(error, retryTarget: session);
+      return error.kind;
     } catch (_) {
       state = JoinSessionState(
         code: state.code,
@@ -148,6 +156,7 @@ class JoinSessionViewModel extends Notifier<JoinSessionState> {
         retryable: true,
         retryTarget: session,
       );
+      return SessionsFailureKind.network;
     }
   }
 

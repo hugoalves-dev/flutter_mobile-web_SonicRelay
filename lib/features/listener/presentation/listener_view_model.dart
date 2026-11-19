@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/di/app_providers.dart';
+import '../../auto_connect/presentation/auto_connect_controller.dart';
 import '../../lan/domain/lan_failure.dart';
 import '../../sessions/domain/stream_session.dart';
+import '../../sessions/presentation/join_session_view_model.dart';
 import '../../signaling/data/signaling_client.dart';
 import '../../signaling/domain/signaling_message.dart';
 import '../data/webrtc_receiver_service.dart';
@@ -163,7 +165,19 @@ class ListenerViewModel extends Notifier<ListenerState> {
   /// Leaves the session: invalidates signaling first so no late token, socket,
   /// or offer can race with peer-connection/audio teardown. Both cleanups run
   /// concurrently and must finish before an error is reported.
-  Future<void> leave() async {
+  ///
+  /// An explicit user stop (Leave, the notification's Stop, backing out while waiting)
+  /// pauses auto-connect so the session just left is not immediately rejoined (issue #65).
+  /// Leaving a session the publisher already ended passes [pauseAutoConnect] false: the
+  /// publisher's next session should still be joined automatically.
+  Future<void> leave({bool pauseAutoConnect = true}) async {
+    if (pauseAutoConnect) {
+      ref
+          .read(autoConnectControllerProvider.notifier)
+          .pauseAfterLeave(
+            ref.read(joinSessionViewModelProvider).session?.sessionId,
+          );
+    }
     final signalingLeave = _signaling.leave();
     final receiverLeave = _receiver.leave();
 

@@ -100,7 +100,10 @@ class ListenerPage extends ConsumerWidget {
                     onLeave: () async {
                       await ref
                           .read(listenerViewModelProvider.notifier)
-                          .leave();
+                          .leave(
+                            pauseAutoConnect:
+                                connection != ListenerConnectionState.ended,
+                          );
                       if (context.mounted) context.go('/join');
                     },
                   ),
