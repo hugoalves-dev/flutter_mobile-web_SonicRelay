@@ -9,6 +9,7 @@ import '../../../app/theme/app_spacing.dart';
 import '../../../core/diagnostics/diagnostic_log.dart';
 import '../../../core/widgets/sonic_button.dart';
 import '../../../core/widgets/sonic_card.dart';
+import '../../auto_connect/presentation/auto_connect_section.dart';
 import '../../support/presentation/widgets/support_project_card.dart';
 import 'widgets/coturn_url_field.dart';
 import 'widgets/keep_playing_toggle.dart';
@@ -122,6 +123,31 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         ),
                       ],
                     ),
+                  ),
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final isPaired =
+                          ref.watch(deviceReadinessProvider).status ==
+                          DeviceReadinessStatus.ready;
+                      if (!isPaired) return const SizedBox.shrink();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const SizedBox(height: AppSpacing.xl),
+                          Text(
+                            'Auto-connect',
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          const SonicCard(
+                            child: Material(
+                              color: Colors.transparent,
+                              child: AutoConnectSection(),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   Text(
