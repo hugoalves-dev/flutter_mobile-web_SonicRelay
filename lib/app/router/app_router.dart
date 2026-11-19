@@ -189,7 +189,7 @@ class _DeviceSetupPage extends ConsumerWidget {
                   const SizedBox(height: 20),
                   if (error == null)
                     const CircularProgressIndicator()
-                  else
+                  else ...[
                     FilledButton(
                       onPressed: () =>
                           ref.read(deviceReadinessProvider.notifier).retry(),
@@ -199,6 +199,16 @@ class _DeviceSetupPage extends ConsumerWidget {
                             : 'Retry device setup',
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    // A mistyped API address fails right here, and Settings is
+                    // unreachable until the device has a credential.
+                    TextButton(
+                      onPressed: () => ref
+                          .read(initialServerSetupCompletedProvider.notifier)
+                          .reopen(),
+                      child: const Text('Change server address'),
+                    ),
+                  ],
                 ],
               ),
             ),

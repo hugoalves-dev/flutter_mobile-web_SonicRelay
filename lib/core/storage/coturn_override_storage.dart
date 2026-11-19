@@ -12,8 +12,18 @@ class CoturnOverrideStorage {
   const CoturnOverrideStorage(this._storage);
 
   static const _key = 'webrtc.coturnUrlOverride';
+  static const _pendingSyncKey = 'webrtc.coturnUrlOverridePendingSync';
 
   final FlutterSecureStorage _storage;
+
+  /// Whether the stored override was chosen before the device could reach the backend (the
+  /// first-run setup) and still has to be pushed, so a later pull must not overwrite it.
+  Future<bool> readPendingSync() async =>
+      (await _storage.read(key: _pendingSyncKey)) == 'true';
+
+  Future<void> writePendingSync(bool pending) => pending
+      ? _storage.write(key: _pendingSyncKey, value: 'true')
+      : _storage.delete(key: _pendingSyncKey);
 
   Future<String?> read() async {
     final stored = await _storage.read(key: _key);
