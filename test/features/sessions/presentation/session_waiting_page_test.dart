@@ -46,7 +46,7 @@ class _PendingListenerViewModel extends ListenerViewModel {
   }
 
   @override
-  Future<void> leave() async {
+  Future<void> leave({bool pauseAutoConnect = true}) async {
     leaveCalls++;
   }
 }
