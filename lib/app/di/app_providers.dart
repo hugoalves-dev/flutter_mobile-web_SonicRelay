@@ -12,6 +12,7 @@ import '../../core/http/dio_client.dart';
 import '../../core/network/network_monitor.dart';
 import '../../core/platform/host_device_name.dart';
 import '../../core/platform/host_platform.dart';
+import '../../core/storage/auto_connect_storage.dart';
 import '../../core/storage/background_playback_storage.dart';
 import '../../core/storage/coturn_override_storage.dart';
 import '../../core/storage/initial_server_setup_storage.dart';
@@ -183,6 +184,10 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
     state = mode;
   }
 }
+
+final autoConnectStorageProvider = Provider<AutoConnectStorage>(
+  (ref) => AutoConnectStorage(ref.watch(secureStorageProvider)),
+);
 
 final relaySettingsApiProvider = Provider<RelaySettingsApi>(
   (ref) => RelaySettingsApi(ref.watch(dioProvider)),
