@@ -132,8 +132,7 @@ class ListenerViewModel extends Notifier<ListenerState> {
   /// layer is already healthy.
   void resume() {
     _signaling.nudge('app resumed');
-    if (_receiver.connectionStateValue ==
-        ListenerConnectionState.reconnecting) {
+    if (_receiver.connectionStateValue == ListenerConnectionState.reconnecting) {
       unawaited(_receiver.reconnect());
     }
   }
@@ -154,6 +153,9 @@ class ListenerViewModel extends Notifier<ListenerState> {
     final signalingLeave = _signaling.leave();
     final receiverLeave = _receiver.leave();
 
-    await Future.wait<void>([signalingLeave, receiverLeave], eagerError: false);
+    await Future.wait<void>(
+      [signalingLeave, receiverLeave],
+      eagerError: false,
+    );
   }
 }

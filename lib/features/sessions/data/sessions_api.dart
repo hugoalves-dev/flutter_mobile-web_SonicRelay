@@ -28,15 +28,10 @@ class DioSessionsApi implements SessionsApi {
 
   @override
   Future<List<DiscoverableSession>> discover() async {
-    final response = await _dio.get<List<Object?>>(
-      '/api/sessions/discoverable',
-    );
+    final response = await _dio.get<List<Object?>>('/api/sessions/discoverable');
     return (response.data ?? const [])
         .whereType<Map>()
-        .map(
-          (entry) =>
-              DiscoverableSession.fromJson(Map<String, Object?>.from(entry)),
-        )
+        .map((entry) => DiscoverableSession.fromJson(Map<String, Object?>.from(entry)))
         .toList();
   }
 

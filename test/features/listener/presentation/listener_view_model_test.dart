@@ -23,9 +23,8 @@ import 'package:sonic_relay/features/signaling/data/signaling_client.dart';
 import 'package:sonic_relay/features/signaling/domain/signaling_message.dart';
 import 'package:sonic_relay/features/signaling/domain/signaling_message_type.dart';
 
-DiagnosticLog _testLog() => FileDiagnosticLog(
-  Directory.systemTemp.createTempSync('sonicrelay_test_').path,
-);
+DiagnosticLog _testLog() =>
+    FileDiagnosticLog(Directory.systemTemp.createTempSync('sonicrelay_test_').path);
 
 class FakeAudioReceiverService implements AudioReceiverService {
   int stopCount = 0;
@@ -578,10 +577,7 @@ void main() {
       // ICE alone is not a live stream: the viewer stays at waitingForMedia
       // until inbound RTP advances, so this drives a real poll to get there.
       peer.nextStats = const RtcConnectionStats(
-        inboundAudio: RtcInboundAudioStats(
-          packetsReceived: 240,
-          packetsLost: 0,
-        ),
+        inboundAudio: RtcInboundAudioStats(packetsReceived: 240, packetsLost: 0),
       );
       await receiver.refreshStats();
       expect(receiver.connectionStateValue, ListenerConnectionState.connected);
@@ -601,20 +597,17 @@ void main() {
     // flowing over its own transport. Re-announcing readiness anyway makes the
     // publisher restart ICE, so a socket that drops on a timer threw away a
     // perfectly healthy stream — and the audio with it — on every drop.
-    test(
-      'does not renegotiate a peer connection that is still connected',
-      () async {
-        final viewer = await startConnectedViewer();
-        viewer.outbound.clear();
+    test('does not renegotiate a peer connection that is still connected', () async {
+      final viewer = await startConnectedViewer();
+      viewer.outbound.clear();
 
-        await viewer.dropSocket();
+      await viewer.dropSocket();
 
-        expect(
-          viewer.outbound.map((signal) => signal.type),
-          isNot(contains(SignalingMessageType.viewerReady)),
-        );
-      },
-    );
+      expect(
+        viewer.outbound.map((signal) => signal.type),
+        isNot(contains(SignalingMessageType.viewerReady)),
+      );
+    });
 
     // The mirror case: when the media path really is down, the recovered socket
     // is the only chance to ask the publisher for a fresh offer, so the

@@ -19,17 +19,7 @@ class AudioVisualizer extends StatefulWidget {
 class _AudioVisualizerState extends State<AudioVisualizer>
     with SingleTickerProviderStateMixin {
   static const _barCount = 9;
-  static const _baseHeights = [
-    0.32,
-    0.55,
-    0.8,
-    0.46,
-    0.92,
-    0.65,
-    0.38,
-    0.74,
-    0.5,
-  ];
+  static const _baseHeights = [0.32, 0.55, 0.8, 0.46, 0.92, 0.65, 0.38, 0.74, 0.5];
 
   late final AnimationController _controller = AnimationController(
     vsync: this,

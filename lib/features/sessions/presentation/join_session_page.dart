@@ -26,7 +26,8 @@ class JoinSessionPage extends ConsumerWidget {
     // tree entirely when there is nothing to show, rather than present-but-empty — an idle
     // publisher is the normal case and should add no noise to the manual-entry flow.
     final hasDiscoveredSessions =
-        (ref.watch(discoverableSessionsProvider).value ?? const []).isNotEmpty;
+        (ref.watch(discoverableSessionsProvider).value ?? const [])
+            .isNotEmpty;
     final hasPublicRoom = ref.watch(publicRoomProvider).value?.enabled ?? false;
     ref.listen(joinSessionViewModelProvider, (previous, next) {
       if (previous?.status != JoinSessionStatus.joined &&
@@ -97,18 +98,14 @@ class JoinSessionPage extends ConsumerWidget {
                             Icon(
                               Icons.shield_outlined,
                               size: 18,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                             const SizedBox(width: AppSpacing.sm),
                             Expanded(
                               child: Text(
                                 'Codes are temporary and shared by your publisher.',
                                 style: TextStyle(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ),

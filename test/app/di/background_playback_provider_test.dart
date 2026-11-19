@@ -14,25 +14,20 @@ class _FakeBackgroundPlaybackStorage extends BackgroundPlaybackStorage {
 }
 
 void main() {
-  test(
-    'BackgroundPlaybackNotifier defaults to on and persists changes',
-    () async {
-      final storage = _FakeBackgroundPlaybackStorage();
-      final container = ProviderContainer(
-        overrides: [
-          backgroundPlaybackStorageProvider.overrideWithValue(storage),
-        ],
-      );
-      addTearDown(container.dispose);
+  test('BackgroundPlaybackNotifier defaults to on and persists changes', () async {
+    final storage = _FakeBackgroundPlaybackStorage();
+    final container = ProviderContainer(
+      overrides: [
+        backgroundPlaybackStorageProvider.overrideWithValue(storage),
+      ],
+    );
+    addTearDown(container.dispose);
 
-      expect(container.read(backgroundPlaybackEnabledProvider), isTrue);
+    expect(container.read(backgroundPlaybackEnabledProvider), isTrue);
 
-      await container
-          .read(backgroundPlaybackEnabledProvider.notifier)
-          .set(false);
+    await container.read(backgroundPlaybackEnabledProvider.notifier).set(false);
 
-      expect(container.read(backgroundPlaybackEnabledProvider), isFalse);
-      expect(storage.written, isFalse);
-    },
-  );
+    expect(container.read(backgroundPlaybackEnabledProvider), isFalse);
+    expect(storage.written, isFalse);
+  });
 }

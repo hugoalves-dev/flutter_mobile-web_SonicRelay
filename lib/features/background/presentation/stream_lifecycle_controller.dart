@@ -6,8 +6,10 @@ import '../data/foreground_stream_service.dart';
 
 /// Creates the bounded reconnect timeout. Injectable so tests can fire it by
 /// hand instead of waiting on a real clock.
-typedef LifecycleTimerFactory =
-    Timer Function(Duration duration, void Function() callback);
+typedef LifecycleTimerFactory = Timer Function(
+  Duration duration,
+  void Function() callback,
+);
 
 /// Decides when the foreground service should run, based on the viewer's
 /// connection state and the "keep playing in background" setting. Pure and
@@ -128,9 +130,7 @@ class StreamLifecycleController {
     // user watching "Reconnecting…" must never be silently kicked out from
     // under them just because the window elapsed while they were looking
     // right at it.
-    if (_running &&
-        !_inForeground &&
-        _state == ListenerConnectionState.reconnecting) {
+    if (_running && !_inForeground && _state == ListenerConnectionState.reconnecting) {
       _reconnectTimer ??= _timerFactory(_reconnectWindow, _onReconnectTimeout);
     } else {
       _cancelReconnectTimer();
@@ -190,10 +190,7 @@ class StreamLifecycleController {
         false,
       ),
       ListenerConnectionState.negotiating ||
-      ListenerConnectionState.connecting => (
-        'Connecting to the stream…',
-        false,
-      ),
+      ListenerConnectionState.connecting => ('Connecting to the stream…', false),
       ListenerConnectionState.connected => ('Listening to the stream', false),
       ListenerConnectionState.reconnecting => (
         'Connection dropped — reconnecting…',

@@ -146,43 +146,39 @@ void main() {
   );
 
   for (final action in ['retry', 'resetAndInitialize']) {
-    test(
-      '$action returns to resettable setup when secure clear fails',
-      () async {
-        final storage = _MemoryCredentialStorage()..credential = _credential;
-        final session = _FakeDeviceIdentitySession.completed(
-          onReset: () =>
-              throw const DeviceCredentialStorageException('clear failed'),
-        );
-        final container = ProviderContainer(
-          overrides: [
-            deviceCredentialStorageProvider.overrideWithValue(storage),
-            deviceIdentitySessionProvider.overrideWithValue(session),
-            pairingRepositoryProvider.overrideWithValue(
-              _FakePairingRepository(),
-            ),
-          ],
-        );
-        addTearDown(container.dispose);
+    test('$action returns to resettable setup when secure clear fails', () async {
+      final storage = _MemoryCredentialStorage()..credential = _credential;
+      final session = _FakeDeviceIdentitySession.completed(
+        onReset: () => throw const DeviceCredentialStorageException(
+          'clear failed',
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          deviceCredentialStorageProvider.overrideWithValue(storage),
+          deviceIdentitySessionProvider.overrideWithValue(session),
+          pairingRepositoryProvider.overrideWithValue(_FakePairingRepository()),
+        ],
+      );
+      addTearDown(container.dispose);
 
-        final notifier = container.read(deviceReadinessProvider.notifier);
-        container.read(deviceReadinessProvider);
-        await Future<void>.delayed(Duration.zero);
-        notifier.requireDeviceSetup('Reset required.');
+      final notifier = container.read(deviceReadinessProvider.notifier);
+      container.read(deviceReadinessProvider);
+      await Future<void>.delayed(Duration.zero);
+      notifier.requireDeviceSetup('Reset required.');
 
-        if (action == 'retry') {
-          await notifier.retry();
-        } else {
-          await notifier.resetAndInitialize();
-        }
+      if (action == 'retry') {
+        await notifier.retry();
+      } else {
+        await notifier.resetAndInitialize();
+      }
 
-        final readiness = container.read(deviceReadinessProvider);
-        expect(readiness.status, DeviceReadinessStatus.deviceSetup);
-        expect(readiness.requiresReset, isTrue);
-        expect(readiness.errorMessage, isNotEmpty);
-        expect(session.resetCalls, 1);
-      },
-    );
+      final readiness = container.read(deviceReadinessProvider);
+      expect(readiness.status, DeviceReadinessStatus.deviceSetup);
+      expect(readiness.requiresReset, isTrue);
+      expect(readiness.errorMessage, isNotEmpty);
+      expect(session.resetCalls, 1);
+    });
   }
 
   test(

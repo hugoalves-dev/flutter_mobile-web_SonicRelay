@@ -104,11 +104,7 @@ class _DonationButton extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
-                Icon(
-                  Icons.favorite,
-                  color: context.sonicColors.warning,
-                  size: 18,
-                ),
+                Icon(Icons.favorite, color: context.sonicColors.warning, size: 18),
               ],
             ),
           ),

@@ -71,7 +71,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                       width: i == _page ? 20 : 8,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: i == _page ? AppColors.accent : AppColors.border,
+                        color: i == _page
+                            ? AppColors.accent
+                            : AppColors.border,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),

@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/di/app_providers.dart';
 import '../../pairing/domain/device_pairing.dart';
 import '../../pairing/presentation/pairing_view_model.dart';
 

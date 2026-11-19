@@ -61,9 +61,7 @@ class SignalingClient {
       _handleTransportState,
     );
     _messageSubscription = _webSocketClient.messages.listen(_handleRawMessage);
-    _networkSubscription = networkMonitor.onChanged.listen(
-      _handleNetworkChange,
-    );
+    _networkSubscription = networkMonitor.onChanged.listen(_handleNetworkChange);
   }
 
   final WebSocketClient _webSocketClient;

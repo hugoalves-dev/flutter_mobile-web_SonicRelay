@@ -18,8 +18,7 @@ class PublicRoomCard extends ConsumerWidget {
     final publicRoom = ref.watch(publicRoomProvider);
     return publicRoom.when(
       data: (info) {
-        if (!info.enabled || info.sessionId == null)
-          return const SizedBox.shrink();
+        if (!info.enabled || info.sessionId == null) return const SizedBox.shrink();
         return SonicCard(
           padding: EdgeInsets.zero,
           child: Material(
@@ -30,9 +29,7 @@ class PublicRoomCard extends ConsumerWidget {
                 color: Theme.of(context).colorScheme.primary,
               ),
               title: const Text('Public Radio'),
-              subtitle: Text(
-                'Tap to listen · up to ${info.maxViewers} listeners',
-              ),
+              subtitle: Text('Tap to listen · up to ${info.maxViewers} listeners'),
               onTap: () => ref
                   .read(joinSessionViewModelProvider.notifier)
                   .joinPublicRoom(info.sessionId!),

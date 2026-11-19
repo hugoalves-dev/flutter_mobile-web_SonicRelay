@@ -41,7 +41,10 @@ void main() {
   });
 
   test('paired device leaves onboarding for session join', () {
-    expect(_redirect(const DeviceReadinessState.ready(), '/loading'), '/join');
+    expect(
+      _redirect(const DeviceReadinessState.ready(), '/loading'),
+      '/join',
+    );
     expect(_redirect(const DeviceReadinessState.ready(), '/pair'), isNull);
     expect(_redirect(const DeviceReadinessState.ready(), '/settings'), isNull);
   });
@@ -95,10 +98,7 @@ void main() {
     '/pair joins into, since that join auto-pairs server-side without a local DevicePairing',
     () {
       expect(
-        _redirect(
-          const DeviceReadinessState.pairingRequired(),
-          '/session/waiting',
-        ),
+        _redirect(const DeviceReadinessState.pairingRequired(), '/session/waiting'),
         isNull,
       );
       expect(
@@ -158,35 +158,32 @@ void main() {
       );
     });
 
-    test(
-      'settings and how-to-use stay reachable even with pending onboarding',
-      () {
-        expect(
-          _redirect(
-            const DeviceReadinessState.pairingRequired(),
-            '/settings',
-            onboardingCompleted: false,
-          ),
-          isNull,
-        );
-        expect(
-          _redirect(
-            const DeviceReadinessState.pairingRequired(),
-            '/how-to-use',
-            onboardingCompleted: false,
-          ),
-          isNull,
-        );
-        expect(
-          _redirect(
-            const DeviceReadinessState.ready(),
-            '/how-to-use',
-            onboardingCompleted: false,
-          ),
-          isNull,
-        );
-      },
-    );
+    test('settings and how-to-use stay reachable even with pending onboarding', () {
+      expect(
+        _redirect(
+          const DeviceReadinessState.pairingRequired(),
+          '/settings',
+          onboardingCompleted: false,
+        ),
+        isNull,
+      );
+      expect(
+        _redirect(
+          const DeviceReadinessState.pairingRequired(),
+          '/how-to-use',
+          onboardingCompleted: false,
+        ),
+        isNull,
+      );
+      expect(
+        _redirect(
+          const DeviceReadinessState.ready(),
+          '/how-to-use',
+          onboardingCompleted: false,
+        ),
+        isNull,
+      );
+    });
 
     test('a completed onboarding no longer gates navigation', () {
       expect(
