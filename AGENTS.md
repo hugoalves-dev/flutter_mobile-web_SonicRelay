@@ -18,7 +18,11 @@ Before finishing any application `feat`, `fix`, or `refactor`, increment the sem
 
 When a change fits more than one category, use the highest applicable level. Reset the lower components normally: `MAJOR` resets `MINOR` and `PATCH` to `0`; `MINOR` resets `PATCH` to `0`.
 
-Change only `<major>.<minor>.<patch>`. Preserve `<buildNumber>` exactly as it is and never increment it manually — the `CI/CD` workflow owns it. It resolves a build number greater than both the current `pubspec.yaml` build number and the latest `v*+*` release tag, using the `100000 + GITHUB_RUN_NUMBER` baseline, then:
+Change only `<major>.<minor>.<patch>`. Preserve `<buildNumber>` exactly as it is and never increment it manually — the `CI/CD` workflow owns it. It resolves a build number greater than both the current `pubspec.yaml` build number and the latest legacy `v*+*` release tag, using the `100000 + GITHUB_RUN_NUMBER` baseline (see `.github/scripts/resolve-release-version.sh`).
+
+Release tags and release assets carry only the version name: `v<major>.<minor>.<patch>` (for example `v1.10.1`), never the build number. F-Droid's metadata builds its reference-APK URLs from that name. Every push to `main` releases; when `pubspec.yaml`'s version name is already released (as `v<name>` or a legacy `v<name>+<build>` tag), CI bumps the patch until the name is free. Pushes that follow the rule below and leave the version unchanged therefore still publish a patch release.
+
+Then the workflow:
 
 1. persists the resolved version in `pubspec.yaml`;
 2. commits it to `main` as `github-actions[bot]`;

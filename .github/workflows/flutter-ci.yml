@@ -44,54 +44,25 @@ jobs:
             exit 1
           fi
 
-          VERSION_NAME="${VERSION_DECLARATION%%+*}"
+          bash .github/scripts/resolve-release-version.test.sh
 
-          if [[ ! "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Releases require a versionName in major.minor.patch format, found '$VERSION_NAME'." >&2
-            exit 1
-          fi
-
-          CURRENT_VERSION_CODE=0
-          if [[ "$VERSION_DECLARATION" == *+* ]]; then
-            CURRENT_VERSION_CODE="${VERSION_DECLARATION##*+}"
-          fi
-
-          if [[ ! "$CURRENT_VERSION_CODE" =~ ^[0-9]+$ ]]; then
-            echo "Invalid build number in pubspec.yaml: '$CURRENT_VERSION_CODE'." >&2
-            exit 1
-          fi
-
-          LATEST_TAG_VERSION_CODE=$(
-            git tag --list 'v*+*' \
-              | sed -nE 's/^v[0-9]+\.[0-9]+\.[0-9]+\+([0-9]+)$/\1/p' \
-              | sort -n \
-              | tail -n 1
+          RESOLVED=$(
+            git tag --list \
+              | bash .github/scripts/resolve-release-version.sh \
+                  "$VERSION_DECLARATION" "$ANDROID_VERSION_CODE_OFFSET" "$GITHUB_RUN_NUMBER"
           )
-          LATEST_TAG_VERSION_CODE="${LATEST_TAG_VERSION_CODE:-0}"
+          TAG=$(sed -n 's/^tag=//p' <<< "$RESOLVED")
 
-          VERSION_CODE=$((ANDROID_VERSION_CODE_OFFSET + GITHUB_RUN_NUMBER))
-
-          if (( VERSION_CODE <= CURRENT_VERSION_CODE )); then
-            VERSION_CODE=$((CURRENT_VERSION_CODE + 1))
-          fi
-
-          if (( VERSION_CODE <= LATEST_TAG_VERSION_CODE )); then
-            VERSION_CODE=$((LATEST_TAG_VERSION_CODE + 1))
-          fi
-
-          TAG="v${VERSION_NAME}+${VERSION_CODE}"
           SHOULD_RELEASE=false
 
           if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" == "refs/heads/main" ]]; then
             SHOULD_RELEASE=true
           fi
 
-          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
-          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "$RESOLVED" >> "$GITHUB_OUTPUT"
           echo "should_release=$SHOULD_RELEASE" >> "$GITHUB_OUTPUT"
 
-          echo "Resolved release: $TAG"
+          echo "Resolved release: $TAG ($(sed -n 's/^version_code=//p' <<< "$RESOLVED"))"
           echo "Release eligible: $SHOULD_RELEASE"
 
   checks:
