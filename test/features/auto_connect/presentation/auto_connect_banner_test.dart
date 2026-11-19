@@ -119,6 +119,33 @@ void main() {
     );
   });
 
+  testWidgets('does not join while another page covers the join page', (
+    tester,
+  ) async {
+    // Settings is pushed over the join page, which stays mounted underneath.
+    final (container, repository) = await _pump(tester);
+    final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+    navigator.push(
+      MaterialPageRoute<void>(
+        builder: (_) => const Scaffold(body: Text('Settings')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await container.read(autoConnectControllerProvider.notifier).onDiscovery([
+      _homeSession,
+    ]);
+    expect(repository.joinedIds, isEmpty);
+
+    navigator.pop();
+    await tester.pumpAndSettle();
+    await container.read(autoConnectControllerProvider.notifier).onDiscovery([
+      _homeSession,
+    ]);
+
+    expect(repository.joinedIds, ['s1']);
+  });
+
   testWidgets('shows the connecting state', (tester) async {
     final (container, _) = await _pump(tester);
 

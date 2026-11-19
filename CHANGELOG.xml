@@ -1,7 +1,9 @@
 <en-US>
-- Review and edit the API and TURN server addresses before the app connects for the first time.
+- Auto-connect: choose one paired PC in Settings and the app joins its stream automatically, without a session code, whenever the join screen is open.
+- Leaving a session pauses auto-connect until you tap Resume or reopen the app.
 </en-US>
 
 <pt-BR>
-- Revise e altere os endereços da API e do servidor TURN antes da primeira conexão do app.
+- Conexão automática: escolha um PC pareado em Settings e o app entra na transmissão dele sozinho, sem código de sessão, sempre que a tela de entrada estiver aberta.
+- Sair de uma sessão pausa a conexão automática até você tocar em Resume ou reabrir o app.
 </pt-BR>

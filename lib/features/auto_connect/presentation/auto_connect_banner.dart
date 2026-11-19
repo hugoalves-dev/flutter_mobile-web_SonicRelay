@@ -22,19 +22,44 @@ class _AutoConnectBannerState extends ConsumerState<AutoConnectBanner>
     with WidgetsBindingObserver {
   late final AutoConnectController _controller;
   StreamSubscription<bool>? _network;
+  bool _visible = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = ref.read(autoConnectControllerProvider.notifier)..attach();
+    _controller = ref.read(autoConnectControllerProvider.notifier);
     WidgetsBinding.instance.addObserver(this);
     ref.listenManual(discoverableSessionsProvider, (_, next) {
       if (next case AsyncData(:final value)) {
         unawaited(_controller.onDiscovery(value));
       }
-    }, fireImmediately: true);
+    });
     _network = ref.read(networkMonitorProvider).onChanged.listen((online) {
       if (online) _refreshDiscovery();
+    });
+  }
+
+  /// Mounted is not visible: Settings, Pairing or Help pushed over the join page keep it
+  /// (and this banner) alive underneath. Auto-connect acts only while the join page is
+  /// the current route, so it never joins — and navigates away — while the user is
+  /// editing preferences, and re-evaluates as soon as the join page is back on top.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final visible = ModalRoute.of(context)?.isCurrent ?? true;
+    if (visible == _visible) return;
+    _visible = visible;
+    // Providers must not change while the tree is building; apply after this frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _visible != visible) return;
+      if (!visible) {
+        _controller.detach();
+        return;
+      }
+      _controller.attach();
+      if (ref.read(discoverableSessionsProvider).value case final sessions?) {
+        unawaited(_controller.onDiscovery(sessions));
+      }
     });
   }
 
