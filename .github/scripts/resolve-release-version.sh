@@ -52,7 +52,9 @@ if (( VERSION_CODE <= LATEST_TAG_VERSION_CODE )); then
 fi
 
 is_released() {
-  printf '%s\n' "$EXISTING_TAGS" | grep -Eq "^v${MAJOR}\.${MINOR}\.$1(\+[0-9]+)?$"
+  # Here-string, not a pipe: with pipefail, grep -q exiting early would SIGPIPE the writer
+  # on large tag lists and make a taken name look free.
+  grep -Eq "^v${MAJOR}\.${MINOR}\.$1(\+[0-9]+)?$" <<< "$EXISTING_TAGS"
 }
 
 while is_released "$PATCH"; do

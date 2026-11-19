@@ -39,6 +39,8 @@ assert_resolves run_number_baseline_wins '1.10.0+100165' 300 '' 1.10.0 100300
 assert_resolves legacy_tag_code_wins '1.10.0+100165' 70 'v1.9.0+100170' 1.10.0 100171
 assert_resolves taken_name_matching_is_exact '1.10.0+100165' 70 $'v11.10.0\nv1.10.0-beta\nv1x10x0' 1.10.0 100166
 assert_resolves pubspec_without_build_number '1.10.0' 5 '' 1.10.0 100005
+many_tags=$(printf 'v1.10.0\n'; for i in $(seq 1 20000); do printf 'v0.0.%d\n' "$i"; done)
+assert_resolves large_tag_list_still_detects_taken_name '1.10.0+100165' 70 "$many_tags" 1.10.1 100166
 assert_fails rejects_invalid_name '1.10+5'
 assert_fails rejects_invalid_build_number '1.10.0+abc'
 
