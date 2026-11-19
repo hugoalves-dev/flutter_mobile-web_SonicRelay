@@ -8,6 +8,9 @@ import '../../../core/network/network_monitor.dart';
 import '../../../core/websocket/websocket_client.dart';
 import '../../../core/websocket/websocket_message.dart';
 import '../../device_identity/data/device_identity_session.dart';
+import '../../lan/data/lan_platform_contract.dart';
+import '../../lan/domain/lan_failure.dart';
+import '../../lan/domain/lan_session_target.dart';
 import '../../sessions/domain/stream_session.dart';
 import '../domain/signaling_message.dart';
 import '../domain/signaling_message_type.dart';
@@ -61,7 +64,12 @@ class SignalingClient {
       _handleTransportState,
     );
     _messageSubscription = _webSocketClient.messages.listen(_handleRawMessage);
-    _networkSubscription = networkMonitor.onChanged.listen(_handleNetworkChange);
+    _networkSubscription = networkMonitor.onChanged.listen(
+      _handleNetworkChange,
+    );
+    _terminationSubscription = _webSocketClient.terminations.listen(
+      _handleTermination,
+    );
   }
 
   final WebSocketClient _webSocketClient;
@@ -98,6 +106,18 @@ class SignalingClient {
   StreamSession? _session;
   bool _leaving = false;
 
+  late final StreamSubscription<WebSocketTermination> _terminationSubscription;
+  final _lanFailureController = StreamController<LanFailure>.broadcast();
+
+  /// Terminal LAN failures (revoked, unauthorized, no live session, retries
+  /// exhausted). The socket has stopped; the UI explains why instead of
+  /// looping (dotnet_SonicRelay#75).
+  Stream<LanFailure> get lanFailures => _lanFailureController.stream;
+
+  /// Whether the current session is signaled over a desktop's LAN host. Read
+  /// by the WebRTC receiver to use host candidates only.
+  bool get isLanSession => !_leaving && (_session?.isLan ?? false);
+
   Stream<SignalingConnectionState> get connectionState =>
       _connectionStateController.stream;
 
@@ -117,6 +137,23 @@ class SignalingClient {
         'connect sessionId=${session.sessionId} uri=$uri',
       ),
     );
+    final lan = session.lan;
+    if (lan != null) {
+      // LAN signaling (dotnet_SonicRelay#75): pinned TLS, the per-device LAN
+      // credential, terminal 44xx close codes and a bounded retry budget so an
+      // isolated network reports an error instead of looping.
+      await _webSocketClient.connect(
+        uri,
+        connector: lan.connector,
+        headersProvider: (_) async => lan.headers,
+        shouldReconnectOnError: (error) =>
+            error is! LanTransportException ||
+            error.failure != LanTransportFailure.tlsRejected,
+        shouldReconnectOnClose: (code) => !LanCloseCodes.isTerminal(code),
+        maxAttempts: lanMaxAttempts,
+      );
+      return;
+    }
     final usesBrowserGrant =
         _authenticationPolicy ==
         SignalingAuthenticationPolicy.browserCookieGrant;
@@ -135,6 +172,25 @@ class SignalingClient {
           error is! DeviceIdentitySessionInvalidatedException &&
           error is! SignalingGrantRejectedException,
     );
+  }
+
+  /// Reconnect attempts on a LAN session before giving up with an error.
+  static const lanMaxAttempts = 5;
+
+  void _handleTermination(WebSocketTermination termination) {
+    if (!isLanSession) return;
+    final code = switch (termination.closeCode) {
+      LanCloseCodes.unauthorized => LanFailureCode.unauthorized,
+      LanCloseCodes.revoked => LanFailureCode.revoked,
+      LanCloseCodes.unavailable => LanFailureCode.sessionUnavailable,
+      LanCloseCodes.sessionEnded => null,
+      _ => LanFailureCode.unreachable,
+    };
+    if (code == null) return;
+    unawaited(
+      _diagnosticLog.write('Signaling', 'LAN stopped: ${code.diagnosticCode}'),
+    );
+    _lanFailureController.add(LanFailure(code));
   }
 
   Future<void> _prepareBrowserGrant(String sessionId) async {
@@ -330,6 +386,8 @@ class SignalingClient {
     _networkStabilizationTimer?.cancel();
     _networkStabilizationTimer = null;
     await _networkSubscription.cancel();
+    await _terminationSubscription.cancel();
+    await _lanFailureController.close();
     await _connectionSubscription.cancel();
     await _messageSubscription.cancel();
     await _webSocketClient.dispose();

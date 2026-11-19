@@ -74,7 +74,9 @@ String? _resolve(String target, {required String from}) {
     return 'lib/${target.substring('package:sonic_relay/'.length)}';
   }
   if (target.contains(':')) return null;
-  return File('${File(from).parent.path}/$target').uri.normalizePath().path
+  return File('${File(from).parent.path}/$target').uri
+      .normalizePath()
+      .path
       .replaceFirst(RegExp('^${Directory.current.path}/'), '');
 }
 
@@ -137,7 +139,8 @@ void main() {
     expect(
       _ioOnlyLibraries.difference(ioImporters),
       isEmpty,
-      reason: '_ioOnlyLibraries lists a library that no longer imports dart:io.',
+      reason:
+          '_ioOnlyLibraries lists a library that no longer imports dart:io.',
     );
   });
 }

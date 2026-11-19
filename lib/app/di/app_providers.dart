@@ -655,6 +655,8 @@ final webRtcReceiverServiceProvider = Provider<WebRtcReceiverService>((ref) {
     // (dotnet_SonicRelay's TurnCredentialService), so this client naturally can't fall back
     // to relay — there's nothing to fall back to.
     forceRelay: () => ref.read(relayModeProvider) == RelayModes.forceRelay,
+    // LAN-signaled sessions use host candidates only (dotnet_SonicRelay#75).
+    lanSignaled: () => ref.read(signalingClientProvider).isLanSession,
   );
   ref.onDispose(service.dispose);
   return service;

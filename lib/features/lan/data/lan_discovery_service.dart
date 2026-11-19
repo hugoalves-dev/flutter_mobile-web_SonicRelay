@@ -93,8 +93,9 @@ class LanDiscoveryService {
     final hint = service.attributes['id'];
     if (service.attributes['v'] != protocolVersion ||
         hint == null ||
-        hint.length != 6)
+        hint.length != 6) {
       return;
+    }
     final host = service.host;
     if (host == null || host.isEmpty) return;
     final formatted = host.contains(':') ? '[$host]' : host;

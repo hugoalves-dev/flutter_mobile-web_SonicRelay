@@ -57,8 +57,9 @@ class LanPairingApi {
       body = {'pid': offer.pairingId, 'sec': offer.secret};
     } else {
       final decoded = ManualPairingCode.tryDecode(manualCode);
-      if (decoded == null)
+      if (decoded == null) {
         throw const LanFailure(LanFailureCode.pairingInvalid);
+      }
       typedPrefix = decoded.pinPrefix;
       policy = PinPolicy(pinPrefix: typedPrefix);
       body = {'code': ManualPairingCode.normalize(manualCode)};

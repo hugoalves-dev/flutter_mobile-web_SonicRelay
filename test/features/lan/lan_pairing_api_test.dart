@@ -39,11 +39,12 @@ void main() {
       final api = LanPairingApi(
         post: (endpoint, body, pinPolicy) async {
           calls.add(endpoint);
-          if (endpoint.startsWith('192.168.1.'))
+          if (endpoint.startsWith('192.168.1.')) {
             throw const LanTransportException(
               LanTransportFailure.unreachable,
               'no route',
             );
+          }
           expect(pinPolicy.pin, pin);
           expect(body['pid'], offer.pairingId);
           expect(body['sec'], offer.secret);

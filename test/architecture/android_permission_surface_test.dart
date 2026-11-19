@@ -37,17 +37,16 @@ const _removedPermissions = {
   'android.permission.WRITE_EXTERNAL_STORAGE',
 };
 
-final _usesPermission = RegExp(
-  r'<uses-permission\b([^>]*)>',
-  multiLine: true,
-);
+final _usesPermission = RegExp(r'<uses-permission\b([^>]*)>', multiLine: true);
 final _permissionName = RegExp(r'android:name="([^"]+)"');
 
 ({Set<String> requested, Set<String> removed}) _appPermissions() {
   final requested = <String>{};
   final removed = <String>{};
 
-  for (final match in _usesPermission.allMatches(File(_appManifest).readAsStringSync())) {
+  for (final match in _usesPermission.allMatches(
+    File(_appManifest).readAsStringSync(),
+  )) {
     final attributes = match.group(1)!;
     final name = _permissionName.firstMatch(attributes)?.group(1);
     if (name == null) continue;
@@ -73,7 +72,8 @@ Map<String, Set<String>> _permissionsByDependency() {
   );
 
   final packages =
-      (jsonDecode(config.readAsStringSync()) as Map<String, dynamic>)['packages']
+      (jsonDecode(config.readAsStringSync())
+              as Map<String, dynamic>)['packages']
           as List<dynamic>;
 
   final result = <String, Set<String>>{};
@@ -89,7 +89,9 @@ Map<String, Set<String>> _permissionsByDependency() {
     for (final file in android.listSync(recursive: true).whereType<File>()) {
       if (!file.path.endsWith('AndroidManifest.xml')) continue;
       for (final match in _usesPermission.allMatches(file.readAsStringSync())) {
-        final permission = _permissionName.firstMatch(match.group(1)!)?.group(1);
+        final permission = _permissionName
+            .firstMatch(match.group(1)!)
+            ?.group(1);
         if (permission != null) {
           (result[name] ??= <String>{}).add(permission);
         }
