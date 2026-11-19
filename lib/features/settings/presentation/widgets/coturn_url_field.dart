@@ -46,7 +46,8 @@ class _CoturnUrlFieldState extends ConsumerState<CoturnUrlField> {
     final url = _controller.text.trim();
     if (url.isNotEmpty && !_isValid(url)) {
       setState(() {
-        _error = 'Enter a valid TURN URL, e.g. turn:your-coturn-server.example.com:3478';
+        _error =
+            'Enter a valid TURN URL, e.g. turn:your-coturn-server.example.com:3478';
       });
       return;
     }
@@ -60,7 +61,11 @@ class _CoturnUrlFieldState extends ConsumerState<CoturnUrlField> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(content: Text(url.isEmpty ? 'Using the server relay.' : 'Coturn URL saved.')),
+        SnackBar(
+          content: Text(
+            url.isEmpty ? 'Using the server relay.' : 'Coturn URL saved.',
+          ),
+        ),
       );
   }
 
@@ -85,7 +90,11 @@ class _CoturnUrlFieldState extends ConsumerState<CoturnUrlField> {
           hintText: 'turn:your-coturn-server.example.com:3478',
         ),
         const SizedBox(height: AppSpacing.md),
-        SonicButton(label: 'Save coturn URL', icon: Icons.save_outlined, onPressed: _save),
+        SonicButton(
+          label: 'Save coturn URL',
+          icon: Icons.save_outlined,
+          onPressed: _save,
+        ),
       ],
     );
   }

@@ -80,7 +80,7 @@ void main() {
       expect(_pick(stopped: true, sessions: [_session('s1')]), isNull);
     });
 
-    test('never interrupts a join in flight or an active session', () {
+    test('never interrupts a join in flight', () {
       expect(
         _pick(
           joinStatus: JoinSessionStatus.joining,
@@ -88,11 +88,22 @@ void main() {
         ),
         isNull,
       );
-      expect(
-        _pick(joinStatus: JoinSessionStatus.joined, sessions: [_session('s1')]),
-        isNull,
-      );
     });
+
+    test(
+      'a joined status left over from a finished session does not block',
+      () {
+        // The join view model keeps `joined` after the user is back on the join
+        // page; the page itself unmounts while a session plays.
+        expect(
+          _pick(
+            joinStatus: JoinSessionStatus.joined,
+            sessions: [_session('s1')],
+          )?.sessionId,
+          's1',
+        );
+      },
+    );
 
     test('ignores sessions of other publishers', () {
       expect(_pick(sessions: [_session('s1', publisher: 'pub-2')]), isNull);

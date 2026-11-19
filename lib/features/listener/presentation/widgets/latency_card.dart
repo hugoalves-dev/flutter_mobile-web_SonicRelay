@@ -65,7 +65,8 @@ class LatencyCard extends StatelessWidget {
                 child: _Metric(
                   label: 'Loss',
                   value: _formatPercent(packetLossPercent),
-                  icon: Icons.signal_cellular_connected_no_internet_0_bar_rounded,
+                  icon:
+                      Icons.signal_cellular_connected_no_internet_0_bar_rounded,
                 ),
               ),
             ],

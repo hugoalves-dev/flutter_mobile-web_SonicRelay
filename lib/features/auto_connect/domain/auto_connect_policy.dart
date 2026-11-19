@@ -47,11 +47,11 @@ abstract final class AutoConnectPolicy {
     required Set<String> coolingDown,
   }) {
     if (!settings.isActive || paused || stopped) return null;
-    // Joining or joined means a session is starting or playing: never replace it.
-    if (joinStatus == JoinSessionStatus.joining ||
-        joinStatus == JoinSessionStatus.joined) {
-      return null;
-    }
+    // A join in flight (manual or automatic) must not be raced. A playing session is
+    // protected by where this runs: only the join page drives it, and that page is
+    // unmounted while a session plays. `joined` itself is not checked because the join
+    // view model keeps it after the user is back on the join page.
+    if (joinStatus == JoinSessionStatus.joining) return null;
     final candidates = sessions.where(
       (s) =>
           s.publisherDeviceId == settings.publisherDeviceId &&

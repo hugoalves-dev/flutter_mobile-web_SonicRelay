@@ -98,10 +98,7 @@ class _HowToUseStep extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                step.title,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+              Text(step.title, style: Theme.of(context).textTheme.titleMedium),
               Text(step.body, style: Theme.of(context).textTheme.bodyMedium),
             ],
           ),

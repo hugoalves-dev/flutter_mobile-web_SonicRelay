@@ -10,7 +10,10 @@ class PublicRoomInfo {
     required this.maxViewers,
   });
 
-  const PublicRoomInfo.disabled() : enabled = false, sessionId = null, maxViewers = 0;
+  const PublicRoomInfo.disabled()
+    : enabled = false,
+      sessionId = null,
+      maxViewers = 0;
 
   factory PublicRoomInfo.fromJson(Map<String, Object?> json) => PublicRoomInfo(
     enabled: json['enabled'] as bool? ?? false,

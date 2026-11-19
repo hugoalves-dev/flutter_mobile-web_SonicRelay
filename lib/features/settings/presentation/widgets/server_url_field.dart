@@ -43,7 +43,8 @@ class _ServerUrlFieldState extends ConsumerState<ServerUrlField> {
     final url = AppConfig.normalizeServerUrl(_controller.text);
     if (!_isValid(url)) {
       setState(() {
-        _error = 'Enter a valid URL, e.g. https://sonicrelay-api.hugodotnet.dev';
+        _error =
+            'Enter a valid URL, e.g. https://sonicrelay-api.hugodotnet.dev';
       });
       return;
     }

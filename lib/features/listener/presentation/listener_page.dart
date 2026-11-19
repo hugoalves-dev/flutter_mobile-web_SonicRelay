@@ -144,7 +144,8 @@ class ListenerPage extends ConsumerWidget {
         SignalingConnectionState.connected => ConnectionStatus.connected,
         SignalingConnectionState.connecting ||
         SignalingConnectionState.reconnecting ||
-        SignalingConnectionState.waitingForNetwork => ConnectionStatus.connecting,
+        SignalingConnectionState.waitingForNetwork =>
+          ConnectionStatus.connecting,
         null ||
         SignalingConnectionState.ended ||
         SignalingConnectionState.disconnected => ConnectionStatus.disconnected,

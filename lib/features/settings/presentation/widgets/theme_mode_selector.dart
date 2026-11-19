@@ -22,7 +22,9 @@ class ThemeModeSelector extends ConsumerWidget {
           ..hideCurrentSnackBar()
           ..showSnackBar(
             const SnackBar(
-              content: Text('Could not save the appearance setting. Please try again.'),
+              content: Text(
+                'Could not save the appearance setting. Please try again.',
+              ),
             ),
           );
       }
