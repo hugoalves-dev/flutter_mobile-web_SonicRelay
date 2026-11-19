@@ -84,7 +84,7 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Analyze
         if: matrix.task == 'analyze'
@@ -117,7 +117,7 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       # F-Droid's build server applies the same patch when rebuilding from
       # source to verify Reproducible Builds; without it here too, the two
@@ -231,7 +231,7 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       # `--wasm` emits both the WasmGC bundle and a dart2js bundle; `flutter.js`
       # picks between them per browser, so browsers without WasmGC still load.
