@@ -3,12 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/di/app_providers.dart';
+import '../../../app/di/lan_providers.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../core/widgets/app_branding_header.dart';
 import '../../../core/widgets/connection_badge.dart';
 import '../../../core/widgets/sonic_button.dart';
+import '../../../core/webrtc/connectivity_modes.dart';
 import '../../../core/widgets/sonic_card.dart';
 import '../../auto_connect/presentation/auto_connect_banner.dart';
+import '../../lan/presentation/lan_publishers_card.dart';
 import '../../support/presentation/widgets/support_project_card.dart';
 import 'join_session_view_model.dart';
 import 'widgets/discovered_sessions_list.dart';
@@ -22,16 +25,28 @@ class JoinSessionPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(joinSessionViewModelProvider);
+    final lanEnabled = ref.watch(lanEnabledProvider);
+    // lanOnly (dotnet_SonicRelay#75) never reaches RelayControl, so the cloud
+    // lookups below are not even watched.
+    final cloudEnabled = ConnectivityModes.allowsCloud(
+      ref.watch(connectivityModeProvider),
+    );
     // Watched here (not just inside DiscoveredSessionsList) so the list is absent from the
     // tree entirely when there is nothing to show, rather than present-but-empty — an idle
     // publisher is the normal case and should add no noise to the manual-entry flow.
     final hasDiscoveredSessions =
-        (ref.watch(discoverableSessionsProvider).value ?? const [])
-            .isNotEmpty;
-    final hasPublicRoom = ref.watch(publicRoomProvider).value?.enabled ?? false;
+        cloudEnabled &&
+        (ref.watch(discoverableSessionsProvider).value ?? const []).isNotEmpty;
+    final hasPublicRoom =
+        cloudEnabled && (ref.watch(publicRoomProvider).value?.enabled ?? false);
     ref.listen(joinSessionViewModelProvider, (previous, next) {
       if (previous?.status != JoinSessionStatus.joined &&
           next.status == JoinSessionStatus.joined) {
+        if (next.notice case final notice?) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(notice)));
+        }
         context.go('/session/waiting');
       }
     });
@@ -70,84 +85,96 @@ class JoinSessionPage extends ConsumerWidget {
                       status: ConnectionStatus.connecting,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                  const AutoConnectBanner(),
-                  Text(
-                    'Enter session code',
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    'Use the code shown by the SonicRelay Windows publisher.',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  SonicCard(
-                    child: Column(
-                      children: [
-                        SessionCodeInput(
-                          enabled: !state.isJoining,
-                          errorText: state.validationMessage,
-                          onChanged: ref
-                              .read(joinSessionViewModelProvider.notifier)
-                              .updateCode,
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.shield_outlined,
-                              size: 18,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: Text(
-                                'Codes are temporary and shared by your publisher.',
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                ),
+                  if (cloudEnabled) ...[
+                    const SizedBox(height: AppSpacing.lg),
+                    const AutoConnectBanner(),
+                    Text(
+                      'Enter session code',
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      'Use the code shown by the SonicRelay Windows publisher.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    SonicCard(
+                      child: Column(
+                        children: [
+                          SessionCodeInput(
+                            enabled: !state.isJoining,
+                            errorText: state.validationMessage,
+                            onChanged: ref
+                                .read(joinSessionViewModelProvider.notifier)
+                                .updateCode,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.shield_outlined,
+                                size: 18,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.lg),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: SonicButton(
-                                label: 'Join stream',
-                                icon: Icons.headphones_rounded,
-                                isLoading: state.isJoining,
-                                onPressed: ref
-                                    .read(joinSessionViewModelProvider.notifier)
-                                    .join,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            SizedBox(
-                              width: 54,
-                              height: 54,
-                              child: OutlinedButton(
-                                onPressed: () => context.push('/pair'),
-                                style: OutlinedButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
+                              const SizedBox(width: AppSpacing.sm),
+                              Expanded(
+                                child: Text(
+                                  'Codes are temporary and shared by your publisher.',
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
-                                child: const Tooltip(
-                                  message: 'Pair a new device',
-                                  child: Icon(Icons.devices_other_rounded),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: SonicButton(
+                                  label: 'Join stream',
+                                  icon: Icons.headphones_rounded,
+                                  isLoading: state.isJoining,
+                                  onPressed: ref
+                                      .read(
+                                        joinSessionViewModelProvider.notifier,
+                                      )
+                                      .join,
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                              const SizedBox(width: AppSpacing.sm),
+                              SizedBox(
+                                width: 54,
+                                height: 54,
+                                child: OutlinedButton(
+                                  onPressed: () => context.push('/pair'),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                  child: const Tooltip(
+                                    message: 'Pair a new device',
+                                    child: Icon(Icons.devices_other_rounded),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
+                  if (lanEnabled) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    const LanPublishersCard(),
+                  ],
                   if (hasPublicRoom) ...[
                     const SizedBox(height: AppSpacing.md),
                     const PublicRoomCard(),

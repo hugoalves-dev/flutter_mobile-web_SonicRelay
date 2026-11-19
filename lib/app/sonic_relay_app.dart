@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/diagnostics/sonic_log.dart';
+import '../core/webrtc/connectivity_modes.dart';
 import '../core/widgets/sonic_text_field.dart';
 import '../features/listener/presentation/listener_view_model.dart';
 import 'di/app_providers.dart';
+import 'di/lan_providers.dart';
 import 'env/app_config.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
@@ -189,6 +191,29 @@ class _InitialServerSetupPageState
     }
   }
 
+  /// Skips the server addresses entirely: this phone will only listen to
+  /// desktops on the local network and never contacts RelayControl
+  /// (dotnet_SonicRelay#75). Settings can switch back at any time.
+  Future<void> _useLocalNetworkOnly() async {
+    setState(() => _saving = true);
+    try {
+      await ref
+          .read(connectivityModeProvider.notifier)
+          .set(ConnectivityModes.lanOnly);
+      await ref.read(initialServerSetupCompletedProvider.notifier).complete();
+      if (!mounted) return;
+      widget.onComplete();
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _saveError = 'Unable to save this choice. Please retry.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -237,6 +262,12 @@ class _InitialServerSetupPageState
                   ],
                 ),
                 actions: [
+                  if (ref.watch(lanPlatformProvider).isSupported)
+                    TextButton(
+                      key: const Key('setup-local-network-only'),
+                      onPressed: _saving ? null : _useLocalNetworkOnly,
+                      child: const Text('Local network only'),
+                    ),
                   FilledButton(
                     onPressed: _saving ? null : _save,
                     child: _saving

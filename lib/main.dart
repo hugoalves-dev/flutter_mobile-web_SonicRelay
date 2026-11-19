@@ -5,9 +5,11 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'app/di/app_providers.dart';
+import 'app/di/lan_providers.dart';
 import 'app/env/app_config.dart';
 import 'app/sonic_relay_app.dart';
 import 'core/storage/background_playback_storage.dart';
+import 'core/storage/connectivity_mode_storage.dart';
 import 'core/storage/coturn_override_storage.dart';
 import 'core/storage/initial_server_setup_storage.dart';
 import 'core/storage/onboarding_storage.dart';
@@ -23,6 +25,9 @@ Future<void> main() async {
       await const ServerConfigStorage(secureStorage).read() ??
       AppConfig.defaultServerUrl;
   final savedRelayMode = await const RelayModeStorage(secureStorage).read();
+  final savedConnectivityMode = await const ConnectivityModeStorage(
+    secureStorage,
+  ).read();
   final savedCoturnOverride = await const CoturnOverrideStorage(
     secureStorage,
   ).read();
@@ -45,6 +50,9 @@ Future<void> main() async {
       overrides: [
         serverUrlProvider.overrideWith(() => ServerUrlNotifier(savedServerUrl)),
         relayModeProvider.overrideWith(() => RelayModeNotifier(savedRelayMode)),
+        connectivityModeProvider.overrideWith(
+          () => ConnectivityModeNotifier(savedConnectivityMode),
+        ),
         coturnOverrideProvider.overrideWith(
           () => CoturnOverrideNotifier(savedCoturnOverride),
         ),

@@ -7,6 +7,7 @@ import '../../../app/theme/sonic_colors.dart';
 import '../../../core/widgets/connection_badge.dart';
 import '../../../core/widgets/sonic_card.dart';
 import '../../signaling/data/signaling_client.dart';
+import '../domain/connection_path.dart';
 import '../domain/listener_connection_state.dart';
 import 'listener_view_model.dart';
 import 'widgets/audio_visualizer.dart';
@@ -63,7 +64,23 @@ class ListenerPage extends ConsumerWidget {
                     signalingStatus: _signalingStatus(state.signaling),
                     iceLabel: state.stats.iceState,
                     iceStatus: _connectionStatus(connection),
+                    pathLabel: connectionPathLabel(
+                      lan: state.isLan,
+                      connected:
+                          connection == ListenerConnectionState.connected ||
+                          connection == ListenerConnectionState.waitingForMedia,
+                      transport: state.stats.transport,
+                    ),
                   ),
+                  if (state.lanFailure case final failure?) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      failure,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: AppSpacing.md),
                   LatencyCard(
                     rttMs: state.stats.rttMs,
@@ -147,7 +164,8 @@ class ListenerPage extends ConsumerWidget {
         SignalingConnectionState.connected => ConnectionStatus.connected,
         SignalingConnectionState.connecting ||
         SignalingConnectionState.reconnecting ||
-        SignalingConnectionState.waitingForNetwork => ConnectionStatus.connecting,
+        SignalingConnectionState.waitingForNetwork =>
+          ConnectionStatus.connecting,
         null ||
         SignalingConnectionState.ended ||
         SignalingConnectionState.disconnected => ConnectionStatus.disconnected,

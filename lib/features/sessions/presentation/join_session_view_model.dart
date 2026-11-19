@@ -1,6 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/di/app_providers.dart';
+import '../../../app/di/lan_providers.dart';
+import '../../../core/webrtc/connectivity_modes.dart';
+import '../../lan/domain/lan_failure.dart';
+import '../../lan/domain/trusted_publisher.dart';
 import '../data/dto/discoverable_session.dart';
 import '../data/sessions_repository.dart';
 import '../domain/stream_session.dart';
@@ -17,6 +21,8 @@ class JoinSessionState {
     this.retryable = false,
     this.retryTarget,
     this.retryPublicRoomSessionId,
+    this.retryLanPublisher,
+    this.notice,
   });
 
   final String code;
@@ -35,6 +41,13 @@ class JoinSessionState {
   /// re-attempt on retry. Mutually exclusive with [retryTarget] — the public room has no
   /// [DiscoverableSession] (it isn't in that list; see [PublicRoomInfo]).
   final String? retryPublicRoomSessionId;
+
+  /// The LAN desktop a failed [JoinSessionViewModel.joinLan] retries.
+  final TrustedPublisher? retryLanPublisher;
+
+  /// Non-error context for the user — e.g. that `auto` fell back to
+  /// RelayControl and why (dotnet_SonicRelay#75).
+  final String? notice;
 
   bool get isJoining => status == JoinSessionStatus.joining;
   bool get canRetry => status == JoinSessionStatus.failed && retryable;
@@ -102,6 +115,9 @@ class JoinSessionViewModel extends Notifier<JoinSessionState> {
   /// discovered-session tap re-attempts that same session (there is no code to re-read for
   /// either), everything else re-reads [state.code] through [join].
   Future<void> retry() {
+    if (state.retryLanPublisher case final publisher?) {
+      return joinLan(publisher);
+    }
     if (state.retryPublicRoomSessionId case final sessionId?) {
       return joinPublicRoom(sessionId);
     }
@@ -167,6 +183,85 @@ class JoinSessionViewModel extends Notifier<JoinSessionState> {
         retryable: true,
         retryPublicRoomSessionId: sessionId,
       );
+    }
+  }
+
+  /// Joins a paired desktop over the local network (dotnet_SonicRelay#75).
+  ///
+  /// The transport is decided here, before the session starts: in `auto`, a
+  /// LAN path that cannot be established falls back to the same desktop's
+  /// RelayControl session (matched by name — a dual-homed desktop uses one
+  /// name for both); in `lanOnly` the failure is reported and RelayControl is
+  /// never contacted. Security failures (revoked, unknown, wrong certificate)
+  /// are always reported rather than papered over.
+  Future<void> joinLan(TrustedPublisher publisher) async {
+    state = JoinSessionState(
+      code: state.code,
+      status: JoinSessionStatus.joining,
+      retryLanPublisher: publisher,
+    );
+    final mode = ref.read(connectivityModeProvider);
+    try {
+      final discovered =
+          ref
+              .read(lanDiscoveryServiceProvider)
+              .findTrusted(publisher)
+              ?.endpoints ??
+          const <String>[];
+      final session = await ref
+          .read(lanSessionConnectorProvider)
+          .connect(publisher, discovered: discovered);
+      state = JoinSessionState(
+        code: state.code,
+        status: JoinSessionStatus.joined,
+        session: session,
+      );
+    } on LanFailure catch (failure) {
+      if (mode == ConnectivityModes.auto && _canFallBack(failure.code)) {
+        final cloud = await _cloudSessionFor(publisher);
+        if (cloud != null) {
+          state = JoinSessionState(
+            code: state.code,
+            status: JoinSessionStatus.joined,
+            session: cloud,
+            notice:
+                'Connected through RelayControl (${failure.code.diagnosticCode}): ${failure.message}',
+          );
+          return;
+        }
+      }
+      state = JoinSessionState(
+        code: state.code,
+        status: JoinSessionStatus.failed,
+        errorMessage: failure.message,
+        notice: failure.code.diagnosticCode,
+        retryable: true,
+        retryLanPublisher: publisher,
+      );
+    }
+  }
+
+  static bool _canFallBack(LanFailureCode code) => switch (code) {
+    LanFailureCode.unreachable ||
+    LanFailureCode.isolationSuspected ||
+    LanFailureCode.sessionUnavailable ||
+    LanFailureCode.noDirectRoute => true,
+    _ => false,
+  };
+
+  Future<StreamSession?> _cloudSessionFor(TrustedPublisher publisher) async {
+    try {
+      final sessions = await _repository.discover();
+      final match = sessions.where(
+        (session) =>
+            !session.isFull &&
+            session.publisherDeviceName.toLowerCase() ==
+                publisher.name.toLowerCase(),
+      );
+      if (match.isEmpty) return null;
+      return await _repository.joinById(match.first.sessionId);
+    } on Object {
+      return null;
     }
   }
 

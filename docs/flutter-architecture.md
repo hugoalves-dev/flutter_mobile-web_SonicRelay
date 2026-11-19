@@ -73,6 +73,16 @@ Pairing and session join are intentionally distinct:
 SDP and ICE candidate bodies are never logged. Flutter never captures a
 microphone, adds a local media track, or handles video.
 
+## Local network (LAN) mode
+
+`features/lan` (dotnet_SonicRelay#75) adds a second signaling transport. `LanPlatform`
+(`lan_platform.dart` conditional barrel; `dart:io` + bonsoir on mobile, unsupported stub on web)
+provides pinned-TLS pairing, the pinned WebSocket connector and mDNS. `LanSessionConnector` probes
+a paired desktop and returns a `StreamSession` with a `LanSessionTarget`; `SignalingClient` then
+connects with the LAN credential, terminal 44xx close codes and a bounded retry budget, and the
+WebRTC receiver uses `iceServers: []` for it. `connectivityModeProvider` (`lan_providers.dart`)
+gates every RelayControl call in `lanOnly`. See [LAN mode](lan-mode.md).
+
 ## Related docs
 
 - [integration-flow.md](integration-flow.md) — Phase 3 end-to-end contract.

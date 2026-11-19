@@ -3,9 +3,13 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/di/app_providers.dart';
+import '../../../app/di/lan_providers.dart';
+import '../../../core/webrtc/connectivity_modes.dart';
+import '../../lan/presentation/lan_pairing_view_model.dart';
 import '../data/pairing_repository.dart';
 import '../domain/device_pairing.dart';
 import '../domain/pairing_challenge_payload.dart';
+import '../domain/pairing_payload.dart';
 
 export '../../../app/di/app_providers.dart' show pairingRepositoryProvider;
 
@@ -104,9 +108,9 @@ class PairingViewModel extends Notifier<PairingState> {
   Future<bool> completeScanned(String raw) async {
     if (_scanSubmissionInFlight) return false;
 
-    PairingChallengePayload payload;
+    PairingPayload payload;
     try {
-      payload = PairingChallengePayload.parse(raw);
+      payload = PairingPayload.parse(raw);
     } on FormatException {
       state = PairingState(
         challengeId: state.challengeId,
@@ -121,10 +125,46 @@ class PairingViewModel extends Notifier<PairingState> {
 
     _scanSubmissionInFlight = true;
     try {
-      return await _complete(payload);
+      return await _completeScannedPayload(payload);
     } finally {
       _scanSubmissionInFlight = false;
     }
+  }
+
+  /// A version-2 QR can pair over the LAN, the cloud, or both
+  /// (dotnet_SonicRelay#75). Each block runs only when the connectivity mode
+  /// allows its transport; the scan succeeds if any block paired.
+  Future<bool> _completeScannedPayload(PairingPayload payload) async {
+    final mode = ref.read(connectivityModeProvider);
+    var lanPaired = false;
+    String? lanError;
+    final lan = payload.lan;
+    if (lan != null && ref.read(lanEnabledProvider)) {
+      final lanPairing = ref.read(lanPairingViewModelProvider.notifier);
+      lanPaired = await lanPairing.pairOffer(lan);
+      if (!lanPaired) {
+        lanError = ref.read(lanPairingViewModelProvider).errorMessage;
+      }
+    }
+
+    final cloud = payload.cloud;
+    if (cloud != null && ConnectivityModes.allowsCloud(mode)) {
+      final cloudPaired = await _complete(cloud);
+      if (cloudPaired || !lanPaired) return cloudPaired || lanPaired;
+    }
+
+    if (lanPaired) {
+      state = PairingState(
+        status: PairingStatus.paired,
+        pairings: state.pairings,
+        revokingPairingIds: state.revokingPairingIds,
+      );
+      return true;
+    }
+    _setFailure(
+      lanError ?? 'This QR code cannot pair in the current connectivity mode.',
+    );
+    return false;
   }
 
   Future<void> load(String deviceId) async {

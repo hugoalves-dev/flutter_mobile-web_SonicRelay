@@ -78,6 +78,15 @@ manual action uses the refreshed token. If the credential exchange itself is
 rejected, the session publishes permanent invalidation, secure credentials are
 cleared, and the router moves to `/device-setup`.
 
+## LAN flow (no RelayControl)
+
+1. Pair offline: QR v2 `lan` block, or address + typed code → `POST https://<desktop>/lan/v1/pair`
+   over TLS pinned to the desktop certificate → per-device LAN credential.
+2. Join: `wss://<desktop>/lan/v1/signaling` with `Authorization: SonicRelay-Lan <credential>` and
+   `X-SonicRelay-Device`. The desktop hub sends `session.joined` (self + publisher); the existing
+   `viewer.ready` → offer → answer → ICE flow follows unchanged, with host candidates only.
+3. See [LAN mode](lan-mode.md) for modes, fallback and diagnostics.
+
 ## Signaling lifecycle
 
 Every server frame follows the typed envelope:

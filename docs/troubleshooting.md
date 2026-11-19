@@ -108,6 +108,13 @@ ICE servers and short-lived TURN credentials come from
 strict NATs can require TURN. Use **Force relay (TURN only)** in Settings to
 diagnose restrictive networks.
 
+## Local network (LAN) mode
+
+LAN pairing and listening report a diagnostic code (`lan.unreachable`, `lan.isolation_suspected`,
+`lan.pin_mismatch`, `lan.revoked`, `ice.no_direct_route`, ...). See [LAN mode](lan-mode.md) for
+each code and what to do; the listener's **Path** row shows whether audio is LAN P2P, RelayControl
+P2P or TURN.
+
 ## Local checklist
 
 1. Start the backend and configure matching HTTP/WS dart defines.

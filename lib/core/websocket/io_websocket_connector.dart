@@ -22,10 +22,15 @@ Future<WebSocketConnection> ioWebSocketConnector(
   return IoWebSocketConnection(socket);
 }
 
-class IoWebSocketConnection implements WebSocketConnection {
+class IoWebSocketConnection implements WebSocketConnection, WebSocketCloseInfo {
   IoWebSocketConnection(this._socket);
 
   final WebSocket _socket;
+
+  /// The code the peer closed with; LAN signaling uses 44xx codes to say a
+  /// retry cannot succeed (dotnet_SonicRelay#75).
+  @override
+  int? get closeCode => _socket.closeCode;
 
   /// How often this socket sends a keepalive ping, or null when it sends none.
   Duration? get pingInterval => _socket.pingInterval;

@@ -16,7 +16,12 @@ enum WebSocketConnectionState {
   disconnected,
 }
 
-enum WebSocketDisconnectReason { normal, serverClosed, transportError, connectFailed }
+enum WebSocketDisconnectReason {
+  normal,
+  serverClosed,
+  transportError,
+  connectFailed,
+}
 
 /// A single open transport connection, abstracted so [WebSocketClient] can
 /// be tested without opening a real socket.
@@ -26,6 +31,32 @@ abstract interface class WebSocketConnection {
   void add(String data);
 
   Future<void> close();
+}
+
+/// Optionally implemented by a [WebSocketConnection] that knows the close code
+/// the peer sent. Kept separate from [WebSocketConnection] so connections that
+/// cannot report one (and test fakes) need not change.
+abstract interface class WebSocketCloseInfo {
+  int? get closeCode;
+}
+
+/// Decides whether a peer close with [closeCode] should be retried.
+typedef WebSocketCloseReconnectPredicate = bool Function(int? closeCode);
+
+/// Why a connection stopped for good: a close code the caller marked terminal,
+/// or the attempt budget given to [WebSocketClient.connect] ran out.
+class WebSocketTermination {
+  const WebSocketTermination({
+    this.closeCode,
+    this.exhausted = false,
+    this.error,
+  });
+
+  final int? closeCode;
+  final bool exhausted;
+
+  /// The connect error the caller declared non-retryable, if that is why it stopped.
+  final Object? error;
 }
 
 typedef WebSocketConnector =
@@ -150,8 +181,7 @@ class WebSocketClient {
   final ReconnectPolicy _reconnectPolicy;
   final Duration _beforeConnectTimeout;
   final NetworkAvailabilityProbe _isNetworkAvailable;
-  final Timer Function(Duration delay, void Function() callback)
-  _scheduleTimer;
+  final Timer Function(Duration delay, void Function() callback) _scheduleTimer;
   final math.Random _random;
 
   final _stateController =
@@ -167,6 +197,18 @@ class WebSocketClient {
 
   Stream<WebSocketDisconnectReason> get disconnectReasons =>
       _disconnectReasonController.stream;
+
+  final _terminationController =
+      StreamController<WebSocketTermination>.broadcast();
+
+  /// Emits when reconnecting stopped because of a terminal close code or an
+  /// exhausted attempt budget (only possible when [connect] was given one).
+  Stream<WebSocketTermination> get terminations =>
+      _terminationController.stream;
+
+  WebSocketConnector? _connectorOverride;
+  WebSocketCloseReconnectPredicate? _shouldReconnectOnClose;
+  int? _maxAttempts;
 
   WebSocketConnection? _connection;
   StreamSubscription<dynamic>? _subscription;
@@ -193,6 +235,9 @@ class WebSocketClient {
     WebSocketBeforeConnect? beforeConnect,
     WebSocketHeadersProvider? headersProvider,
     WebSocketReconnectPredicate? shouldReconnectOnError,
+    WebSocketConnector? connector,
+    WebSocketCloseReconnectPredicate? shouldReconnectOnClose,
+    int? maxAttempts,
   }) async {
     final generation = ++_generation;
     _stopped = false;
@@ -217,6 +262,9 @@ class WebSocketClient {
     _beforeConnect = beforeConnect;
     _headersProvider = headersProvider;
     _shouldReconnectOnError = shouldReconnectOnError ?? (_) => true;
+    _connectorOverride = connector;
+    _shouldReconnectOnClose = shouldReconnectOnClose;
+    _maxAttempts = maxAttempts;
     _attempt = 0;
     await _attemptConnect(generation);
   }
@@ -274,7 +322,7 @@ class WebSocketClient {
           ? _headers
           : await headersProvider(isReconnect);
       if (!_isCurrent(generation)) return;
-      final connection = await _connector(uri, headers);
+      final connection = await (_connectorOverride ?? _connector)(uri, headers);
       if (!_isCurrent(generation)) {
         await connection.close();
         return;
@@ -290,12 +338,20 @@ class WebSocketClient {
           }
         },
         onDone: () {
-          unawaited(
-            _diagnosticLog.write('WebSocket', 'socket closed by peer'),
-          );
+          unawaited(_diagnosticLog.write('WebSocket', 'socket closed by peer'));
           _disconnectReasonController.add(
             WebSocketDisconnectReason.serverClosed,
           );
+          final closeCode = connection is WebSocketCloseInfo
+              ? (connection as WebSocketCloseInfo).closeCode
+              : null;
+          final shouldReconnect = _shouldReconnectOnClose;
+          if (shouldReconnect != null &&
+              _isCurrent(generation) &&
+              !shouldReconnect(closeCode)) {
+            _terminate(WebSocketTermination(closeCode: closeCode));
+            return;
+          }
           _handleDisconnect(generation, connection);
         },
         onError: (Object error) {
@@ -312,8 +368,7 @@ class WebSocketClient {
       unawaited(_diagnosticLog.write('WebSocket', 'connect failed'));
       _disconnectReasonController.add(WebSocketDisconnectReason.connectFailed);
       if (!_shouldReconnectOnError(error)) {
-        _stopped = true;
-        _stateController.add(WebSocketConnectionState.disconnected);
+        _terminate(WebSocketTermination(error: error));
         return;
       }
       _scheduleReconnect(generation);
@@ -332,6 +387,11 @@ class WebSocketClient {
 
   void _scheduleReconnect(int generation) {
     if (!_isCurrent(generation)) return;
+    final maxAttempts = _maxAttempts;
+    if (maxAttempts != null && _attempt + 1 >= maxAttempts) {
+      _terminate(const WebSocketTermination(exhausted: true));
+      return;
+    }
     if (!_isNetworkAvailable()) {
       _parkUntilNetworkReturns(generation);
       return;
@@ -377,6 +437,27 @@ class WebSocketClient {
 
   bool _isCurrent(int generation) => !_stopped && generation == _generation;
 
+  void _terminate(WebSocketTermination termination) {
+    _stopped = true;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    unawaited(_subscription?.cancel());
+    _subscription = null;
+    _connection = null;
+    unawaited(
+      _diagnosticLog.write(
+        'WebSocket',
+        termination.exhausted
+            ? 'reconnect budget exhausted; stopping'
+            : termination.error != null
+            ? 'non-retryable connect error; stopping'
+            : 'terminal close code ${termination.closeCode}; stopping',
+      ),
+    );
+    _stateController.add(WebSocketConnectionState.disconnected);
+    _terminationController.add(termination);
+  }
+
   /// Sends a raw text frame. Silently dropped while disconnected.
   void send(String data) => _connection?.add(data);
 
@@ -405,5 +486,6 @@ class WebSocketClient {
     await _stateController.close();
     await _messageController.close();
     await _disconnectReasonController.close();
+    await _terminationController.close();
   }
 }

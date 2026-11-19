@@ -21,6 +21,9 @@ const _ioOnlyLibraries = {
   'lib/core/platform/io_host_device_name.dart',
   'lib/core/platform/io_host_platform.dart',
   'lib/core/websocket/io_websocket_connector.dart',
+  // LAN mode (dotnet_SonicRelay#75); web counterpart: web_lan_platform.dart.
+  'lib/features/lan/data/io_lan_platform.dart',
+  'lib/features/lan/data/pinned_http_client.dart',
 };
 
 /// One `import`/`export` directive: its default target plus any conditional
@@ -71,7 +74,9 @@ String? _resolve(String target, {required String from}) {
     return 'lib/${target.substring('package:sonic_relay/'.length)}';
   }
   if (target.contains(':')) return null;
-  return File('${File(from).parent.path}/$target').uri.normalizePath().path
+  return File('${File(from).parent.path}/$target').uri
+      .normalizePath()
+      .path
       .replaceFirst(RegExp('^${Directory.current.path}/'), '');
 }
 
@@ -134,7 +139,8 @@ void main() {
     expect(
       _ioOnlyLibraries.difference(ioImporters),
       isEmpty,
-      reason: '_ioOnlyLibraries lists a library that no longer imports dart:io.',
+      reason:
+          '_ioOnlyLibraries lists a library that no longer imports dart:io.',
     );
   });
 }

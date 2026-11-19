@@ -32,6 +32,7 @@ class WebRtcReceiverService {
     RtcIceServerConfig? iceServers,
     Future<RtcIceServerConfig> Function()? iceServersResolver,
     bool Function()? forceRelay,
+    bool Function()? lanSignaled,
     Duration statsInterval = const Duration(seconds: 2),
     Duration offerTimeout = const Duration(seconds: 10),
     int maxOfferRetries = 3,
@@ -41,6 +42,7 @@ class WebRtcReceiverService {
        _iceServers = iceServers ?? RtcIceServerConfig.defaults(),
        _iceServersResolver = iceServersResolver,
        _forceRelay = forceRelay,
+       _lanSignaled = lanSignaled,
        _statsInterval = statsInterval,
        _offerTimeout = offerTimeout,
        _maxOfferRetries = maxOfferRetries,
@@ -59,6 +61,11 @@ class WebRtcReceiverService {
   /// Reads the user's relay-only preference at negotiation time (dynamic so a
   /// toggle applies to the next connection). Null/false allows direct ICE.
   final bool Function()? _forceRelay;
+
+  /// Whether the current session's signaling runs over the LAN host
+  /// (dotnet_SonicRelay#75). Such a session uses host candidates only: no
+  /// ICE servers are resolved, so nothing reaches RelayControl, STUN or TURN.
+  final bool Function()? _lanSignaled;
   final Duration _statsInterval;
   Timer? _statsTimer;
 
@@ -265,12 +272,17 @@ class WebRtcReceiverService {
 
       // Resolve ICE servers (with fresh TURN credentials) per negotiation; the
       // resolver never throws, falling back to the static config on failure.
-      final resolved = _iceServersResolver != null
-          ? await _iceServersResolver()
-          : _iceServers;
-      final iceServers = (_forceRelay?.call() ?? false)
-          ? resolved.withRelay(true)
-          : resolved;
+      final RtcIceServerConfig iceServers;
+      if (_lanSignaled?.call() ?? false) {
+        iceServers = RtcIceServerConfig.empty();
+      } else {
+        final resolved = _iceServersResolver != null
+            ? await _iceServersResolver()
+            : _iceServers;
+        iceServers = (_forceRelay?.call() ?? false)
+            ? resolved.withRelay(true)
+            : resolved;
+      }
       final connection = await _peerConnectionFactory.create(iceServers);
       _peerConnection = connection;
       connection.onIceCandidate = _handleLocalCandidate;

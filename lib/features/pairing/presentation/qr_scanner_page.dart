@@ -4,7 +4,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_zxing/flutter_zxing.dart';
 
-import '../domain/pairing_challenge_payload.dart';
+import '../domain/pairing_payload.dart';
 
 typedef PairingPayloadCallback = FutureOr<bool> Function(String raw);
 
@@ -189,7 +189,7 @@ class _QrScannerPageState extends State<QrScannerPage>
   Future<void> _handleDetection(String? raw) async {
     if (_accepted || raw == null) return;
     try {
-      PairingChallengePayload.parse(raw);
+      PairingPayload.parse(raw);
     } on FormatException {
       // The camera keeps streaming frames of the same code while it's in
       // view, so only surface the error once per distinct rejected payload

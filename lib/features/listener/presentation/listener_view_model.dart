@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/di/app_providers.dart';
 import '../../auto_connect/presentation/auto_connect_controller.dart';
+import '../../lan/domain/lan_failure.dart';
 import '../../sessions/domain/stream_session.dart';
 import '../../sessions/presentation/join_session_view_model.dart';
 import '../../signaling/data/signaling_client.dart';
@@ -17,9 +18,18 @@ class ListenerState {
     this.connection = ListenerConnectionState.idle,
     this.stats = const ListenerStats.initial(),
     this.signaling,
+    this.isLan = false,
+    this.lanFailure,
   });
 
   final ListenerConnectionState connection;
+
+  /// Whether this session's signaling runs over a desktop's LAN host.
+  final bool isLan;
+
+  /// A terminal LAN failure (revoked, no session, retries exhausted), with
+  /// its diagnostic code, so the page explains it instead of spinning.
+  final String? lanFailure;
   final ListenerStats stats;
 
   /// Signaling socket status, or `null` before the socket reports anything.
@@ -29,11 +39,16 @@ class ListenerState {
     ListenerConnectionState? connection,
     ListenerStats? stats,
     SignalingConnectionState? signaling,
+    bool? isLan,
+    String? lanFailure,
+    bool clearLanFailure = false,
   }) {
     return ListenerState(
       connection: connection ?? this.connection,
       stats: stats ?? this.stats,
       signaling: signaling ?? this.signaling,
+      isLan: isLan ?? this.isLan,
+      lanFailure: clearLanFailure ? null : (lanFailure ?? this.lanFailure),
     );
   }
 }
@@ -52,6 +67,7 @@ class ListenerViewModel extends Notifier<ListenerState> {
   StreamSubscription<ListenerConnectionState>? _connectionSubscription;
   StreamSubscription<ListenerStats>? _statsSubscription;
   StreamSubscription<SignalingConnectionState>? _signalingStateSubscription;
+  StreamSubscription<LanFailure>? _lanFailureSubscription;
 
   @override
   ListenerState build() {
@@ -75,11 +91,19 @@ class ListenerViewModel extends Notifier<ListenerState> {
     _statsSubscription = _receiver.stats.listen((stats) {
       state = state.copyWith(stats: stats);
     });
+    _lanFailureSubscription = _signaling.lanFailures.listen((failure) {
+      state = state.copyWith(
+        lanFailure: '${failure.message} (${failure.code.diagnosticCode})',
+      );
+    });
     _signalingStateSubscription = _signaling.connectionState.listen((
       signaling,
     ) {
       final previous = state.signaling;
-      state = state.copyWith(signaling: signaling);
+      state = state.copyWith(
+        signaling: signaling,
+        isLan: _signaling.isLanSession,
+      );
       // When the socket comes back after an outage (e.g. the phone was locked
       // through a network change), re-announce readiness so the publisher
       // re-offers if the peer connection died while we were unreachable.
@@ -106,6 +130,7 @@ class ListenerViewModel extends Notifier<ListenerState> {
       _connectionSubscription?.cancel();
       _statsSubscription?.cancel();
       _signalingStateSubscription?.cancel();
+      _lanFailureSubscription?.cancel();
     });
 
     return ListenerState(
@@ -118,8 +143,11 @@ class ListenerViewModel extends Notifier<ListenerState> {
   /// routed to the WebRTC receiver (wired in [build]), so once connected the
   /// publisher handshake (`viewer.ready` -> offer -> answer) proceeds on its
   /// own. Throws if the socket cannot be opened.
-  Future<void> connect({required StreamSession session}) =>
-      _signaling.connect(session: session);
+  Future<void> connect({required StreamSession session}) {
+    // A failure belongs to the session that reported it, never to the next one.
+    state = state.copyWith(clearLanFailure: true, isLan: session.isLan);
+    return _signaling.connect(session: session);
+  }
 
   /// Nudges a stalled connection to recover by re-announcing readiness to the
   /// publisher (invoked from the background notification's "Reconnect" action).
@@ -132,7 +160,8 @@ class ListenerViewModel extends Notifier<ListenerState> {
   /// layer is already healthy.
   void resume() {
     _signaling.nudge('app resumed');
-    if (_receiver.connectionStateValue == ListenerConnectionState.reconnecting) {
+    if (_receiver.connectionStateValue ==
+        ListenerConnectionState.reconnecting) {
       unawaited(_receiver.reconnect());
     }
   }
@@ -156,9 +185,6 @@ class ListenerViewModel extends Notifier<ListenerState> {
     final signalingLeave = _signaling.leave();
     final receiverLeave = _receiver.leave();
 
-    await Future.wait<void>(
-      [signalingLeave, receiverLeave],
-      eagerError: false,
-    );
+    await Future.wait<void>([signalingLeave, receiverLeave], eagerError: false);
   }
 }

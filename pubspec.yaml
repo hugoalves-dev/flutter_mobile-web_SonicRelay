@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.9.0+100163
+version: 1.10.0+100163
 
 environment:
   sdk: ^3.11.0
@@ -47,12 +47,19 @@ dependencies:
   path_provider: ^2.1.6
   share_plus: ^13.2.1
   connectivity_plus: ^7.3.1
+  # LAN pairing (dotnet_SonicRelay#75): SHA-256 certificate pins and the
+  # LAN viewer device id. Both were already resolved transitively.
+  crypto: ^3.0.7
+  uuid: ^4.6.0
   url_launcher: ^6.3.2
   # Browser bindings for the web signaling transport. Pure Dart with no
   # native Android/iOS code, and reached only from
   # `core/websocket/web_websocket_connector.dart`, so it adds nothing to the
   # mobile builds (dotnet_SonicRelay#33).
   web: ^1.1.1
+  # mDNS/DNS-SD for LAN discovery (dotnet_SonicRelay#75): Android NSD and
+  # Apple Bonjour, no Google Play services.
+  bonsoir: ^6.0.0
 
 dev_dependencies:
   flutter_test:

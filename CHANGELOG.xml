@@ -1,9 +1,11 @@
 <en-US>
-- Auto-connect: choose one paired PC in Settings and the app joins its stream automatically, without a session code, whenever the join screen is open.
-- Leaving a session pauses auto-connect until you tap Resume or reopen the app.
+- Local network: listen to a paired PC on the same network, even without internet.
+- Pair offline by scanning the PC's QR code, or type its address and local code when it is on another network segment.
+- Choose Automatic, Local network only or RelayControl only in Settings; the listener shows the path the audio is using.
 </en-US>
 
 <pt-BR>
-- Conexão automática: escolha um PC pareado em Settings e o app entra na transmissão dele sozinho, sem código de sessão, sempre que a tela de entrada estiver aberta.
-- Sair de uma sessão pausa a conexão automática até você tocar em Resume ou reabrir o app.
+- Rede local: ouça um PC pareado na mesma rede, mesmo sem internet.
+- Pareie offline lendo o QR code do PC ou digitando o endereço e o código local quando ele estiver em outro segmento da rede.
+- Escolha Automático, Somente rede local ou Somente RelayControl em Settings; o player mostra o caminho usado pelo áudio.
 </pt-BR>
